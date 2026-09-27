@@ -1,0 +1,145 @@
+{
+  "trip": {
+    "id": "trip-kyushu-2026",
+    "name": "Kyushu Trip 2026",
+    "startDate": "2026-10-19",
+    "endDate": "2026-10-23",
+    "timezone": "Asia/Tokyo",
+    "currency": "JPY"
+  },
+  "places": [
+    {
+      "id": "p-hakata",
+      "tripId": "trip-kyushu-2026",
+      "name": "博多站",
+      "nameLocal": "博多駅",
+      "category": "station",
+      "priority": "must",
+      "latitude": 33.5898,
+      "longitude": 130.4207,
+      "visitDurationMinutes": 15,
+      "region": "Hakata"
+    },
+    {
+      "id": "p-kushida",
+      "tripId": "trip-kyushu-2026",
+      "name": "櫛田神社",
+      "nameLocal": "櫛田神社",
+      "category": "sightseeing",
+      "priority": "must",
+      "latitude": 33.5931,
+      "longitude": 130.4105,
+      "visitDurationMinutes": 45,
+      "region": "Hakata"
+    },
+    {
+      "id": "p-canal",
+      "tripId": "trip-kyushu-2026",
+      "name": "Canal City 博多",
+      "category": "shopping",
+      "priority": "want",
+      "latitude": 33.5899,
+      "longitude": 130.4103,
+      "visitDurationMinutes": 120,
+      "region": "Hakata"
+    },
+    {
+      "id": "p-dazaifu",
+      "tripId": "trip-kyushu-2026",
+      "name": "太宰府天满宫",
+      "nameLocal": "太宰府天満宮",
+      "category": "sightseeing",
+      "priority": "must",
+      "latitude": 33.5215,
+      "longitude": 130.5348,
+      "visitDurationMinutes": 90,
+      "region": "Dazaifu"
+    },
+    {
+      "id": "p-kyushu-museum",
+      "tripId": "trip-kyushu-2026",
+      "name": "九州国立博物馆",
+      "nameLocal": "九州国立博物館",
+      "category": "museum",
+      "priority": "want",
+      "latitude": 33.5194,
+      "longitude": 130.5381,
+      "visitDurationMinutes": 90,
+      "region": "Dazaifu"
+    },
+    {
+      "id": "p-ohori",
+      "tripId": "trip-kyushu-2026",
+      "name": "大濠公园",
+      "nameLocal": "大濠公園",
+      "category": "nature",
+      "priority": "want",
+      "latitude": 33.5861,
+      "longitude": 130.3761,
+      "visitDurationMinutes": 75,
+      "region": "Fukuoka"
+    }
+  ],
+  "days": [
+    {
+      "id": "d1",
+      "tripId": "trip-kyushu-2026",
+      "date": "2026-10-19",
+      "startTime": "09:00",
+      "endTime": "20:00",
+      "pace": "relaxed"
+    },
+    {
+      "id": "d2",
+      "tripId": "trip-kyushu-2026",
+      "date": "2026-10-20",
+      "startTime": "08:30",
+      "endTime": "20:00",
+      "pace": "normal"
+    },
+    {
+      "id": "d3",
+      "tripId": "trip-kyushu-2026",
+      "date": "2026-10-21",
+      "startTime": "08:30",
+      "endTime": "20:00",
+      "pace": "normal"
+    },
+    {
+      "id": "d4",
+      "tripId": "trip-kyushu-2026",
+      "date": "2026-10-22",
+      "startTime": "08:30",
+      "endTime": "20:00",
+      "pace": "normal"
+    },
+    {
+      "id": "d5",
+      "tripId": "trip-kyushu-2026",
+      "date": "2026-10-23",
+      "startTime": "08:30",
+      "endTime": "18:00",
+      "pace": "relaxed"
+    }
+  ],
+  "shopping": [
+    {
+      "id": "s1",
+      "tripId": "trip-kyushu-2026",
+      "name": "SD Card 128GB",
+      "category": "camera",
+      "storeName": "Bic Camera",
+      "purchased": false,
+      "currency": "JPY"
+    },
+    {
+      "id": "s2",
+      "tripId": "trip-kyushu-2026",
+      "name": "博多通りもん",
+      "category": "souvenir",
+      "storeName": "Hakata Station",
+      "purchased": false,
+      "currency": "JPY"
+    }
+  ]
+}
