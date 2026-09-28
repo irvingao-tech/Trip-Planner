@@ -1,0 +1,373 @@
+{
+  "version": 1,
+  "exportedAt": "2026-09-28T08:42:42.880Z",
+  "places": [
+    {
+      "id": "kushida",
+      "name": "栉田神社",
+      "localName": "櫛田神社",
+      "kind": "sight",
+      "area": "博多",
+      "priority": "must",
+      "duration": 45,
+      "emoji": "⛩️",
+      "latitude": 33.5932,
+      "longitude": 130.4106,
+      "address": "福冈县福冈市博多区博多站前1-41",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5932,130.4106"
+    },
+    {
+      "id": "canal",
+      "name": "博多运河城",
+      "localName": "キャナルシティ博多",
+      "kind": "shopping",
+      "area": "博多",
+      "priority": "want",
+      "duration": 120,
+      "emoji": "🛍️",
+      "latitude": 33.5896,
+      "longitude": 130.4107,
+      "address": "福冈县福冈市博多区住吉1-2",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5896,130.4107"
+    },
+    {
+      "id": "shinshin",
+      "name": "博多らーめん ShinShin",
+      "kind": "food",
+      "area": "天神",
+      "priority": "must",
+      "duration": 60,
+      "cuisine": "博多拉面",
+      "meal": "午餐",
+      "mustTry": "煮蛋博多拉面",
+      "reservation": "无需预约",
+      "note": "高峰期可能排队",
+      "emoji": "🍜",
+      "latitude": 33.5904,
+      "longitude": 130.3986,
+      "address": "福冈县福冈市中央区天神3-7-16",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5904,130.3986"
+    },
+    {
+      "id": "motsu",
+      "name": "もつ鍋 楽天地",
+      "kind": "food",
+      "area": "天神",
+      "priority": "must",
+      "duration": 90,
+      "cuisine": "牛肠锅",
+      "meal": "晚餐",
+      "mustTry": "牛肠锅套餐",
+      "reservation": "已预约",
+      "note": "19:00，保留预约确认邮件",
+      "emoji": "🍲",
+      "latitude": 33.5915,
+      "longitude": 130.4001,
+      "address": "福冈县福冈市中央区天神2-4-23",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5915,130.4001"
+    },
+    {
+      "id": "rec",
+      "name": "REC COFFEE",
+      "kind": "cafe",
+      "area": "药院",
+      "priority": "want",
+      "duration": 45,
+      "cuisine": "咖啡甜点",
+      "meal": "咖啡",
+      "mustTry": "手冲咖啡",
+      "reservation": "无需预约",
+      "emoji": "☕",
+      "latitude": 33.583,
+      "longitude": 130.409,
+      "address": "福冈县福冈市中央区药院2-5-14",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.583,130.409"
+    },
+    {
+      "id": "ohori",
+      "name": "大濠公园",
+      "localName": "大濠公園",
+      "kind": "sight",
+      "area": "福冈",
+      "priority": "want",
+      "duration": 75,
+      "emoji": "🌿",
+      "latitude": 33.586,
+      "longitude": 130.38,
+      "address": "福冈县福冈市中央区大濠公园1-2",
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.586,130.38"
+    },
+    {
+      "id": "00ee497d-8b16-4c9b-b6b0-812dc0899ac1",
+      "name": "福岡空港",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.586802%2C130.4473939",
+      "address": "福岡空港, 県道24号福岡東環状線, 月隈三丁目, 下月隈, 博多区, 福冈市, 福冈县, 816-0088, 日本",
+      "latitude": 33.586802,
+      "longitude": 130.4473939,
+      "website": "fuk-ab.co.jp",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/529445584"
+    },
+    {
+      "id": "79a191ed-cd68-4967-8b77-8f0395781d65",
+      "name": "博多駅",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5900413%2C130.4199026",
+      "address": "博多駅, 博多駅中央街７号線, 博多駅前三丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0012, 日本",
+      "latitude": 33.5900413,
+      "longitude": 130.4199026,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/72653571"
+    },
+    {
+      "id": "20314acb-cf36-4293-aea6-93583a9c6b63",
+      "name": "The B Hakata",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5870183%2C130.4230863",
+      "address": "The B Hakata, 筑紫通り, 博多駅南一丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0013, 日本",
+      "latitude": 33.5870183,
+      "longitude": 130.4230863,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/4163428890"
+    },
+    {
+      "id": "d89bfaf7-cb54-4400-89eb-48f2b7197fea",
+      "name": "博多運河城",
+      "localName": "キャナルシティ博多",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5896715%2C130.411141",
+      "address": "博多運河城, 祇園町, 博多区, 福冈市, 福冈县, 812-0018, 日本",
+      "latitude": 33.5896715,
+      "longitude": 130.411141,
+      "website": "https://canalcity.co.jp/",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/751001483"
+    },
+    {
+      "id": "832ab936-450f-4866-a5a9-e20e8dad2589",
+      "name": "ららぽーと福岡",
+      "kind": "shopping",
+      "emoji": "🛍️",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5647723%2C130.4403204",
+      "address": "ららぽーと福岡, 1;博多区那珂６丁目２３−１３３, 博多区, 福冈市, 福冈县, 812-0893, 日本",
+      "latitude": 33.5647723,
+      "longitude": 130.4403204,
+      "website": "https://mitsui-shopping-park.com/lalaport/special/fukuoka/",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/1014591215"
+    },
+    {
+      "id": "87fe130d-0612-4cab-a3dc-dfd586944bb3",
+      "name": "LaLaport",
+      "localName": "ららぽーと",
+      "kind": "shopping",
+      "emoji": "🛍️",
+      "area": "泉町 · 立川市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=35.7131995%2C139.4177288",
+      "address": "ららぽーと, 立飛横断橋, ららぽーと立川立飛, 泉町, 立川市, 东京都/東京都, 190-0003, 日本",
+      "latitude": 35.7131995,
+      "longitude": 139.4177288,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/4416232391"
+    },
+    {
+      "id": "99000d96-c36a-497b-a141-045d35d63c64",
+      "name": "ららぽーと福岡",
+      "kind": "shopping",
+      "emoji": "🛍️",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5647723%2C130.4403204",
+      "address": "ららぽーと福岡, 1;博多区那珂６丁目２３−１３３, 博多区, 福冈市, 福冈县, 812-0893, 日本",
+      "latitude": 33.5647723,
+      "longitude": 130.4403204,
+      "website": "https://mitsui-shopping-park.com/lalaport/special/fukuoka/",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/1014591215"
+    },
+    {
+      "id": "63af27dd-928b-4ff2-9a18-7b933f3b055f",
+      "name": "ららぽーと福岡",
+      "kind": "shopping",
+      "emoji": "🛍️",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5647723%2C130.4403204",
+      "address": "ららぽーと福岡, 1;博多区那珂６丁目２３−１３３, 博多区, 福冈市, 福冈县, 812-0893, 日本",
+      "latitude": 33.5647723,
+      "longitude": 130.4403204,
+      "website": "https://mitsui-shopping-park.com/lalaport/special/fukuoka/",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/1014591215"
+    }
+  ],
+  "plans": [
+    {
+      "id": "day-1",
+      "date": "2026-10-19",
+      "title": "福冈 · 博多与天神",
+      "startTime": "09:00",
+      "endTime": "20:30",
+      "pace": "normal",
+      "stops": [
+        {
+          "placeId": "00ee497d-8b16-4c9b-b6b0-812dc0899ac1",
+          "time": "13:00",
+          "status": "planned"
+        },
+        {
+          "placeId": "79a191ed-cd68-4967-8b77-8f0395781d65",
+          "time": "13:30",
+          "status": "planned"
+        },
+        {
+          "placeId": "20314acb-cf36-4293-aea6-93583a9c6b63",
+          "time": "14:00",
+          "status": "planned"
+        },
+        {
+          "placeId": "d89bfaf7-cb54-4400-89eb-48f2b7197fea",
+          "time": "15:00",
+          "status": "planned"
+        },
+        {
+          "placeId": "63af27dd-928b-4ff2-9a18-7b933f3b055f",
+          "time": "16:20",
+          "status": "planned"
+        }
+      ],
+      "order": [
+        "stop:00ee497d-8b16-4c9b-b6b0-812dc0899ac1",
+        "stop:79a191ed-cd68-4967-8b77-8f0395781d65",
+        "stop:20314acb-cf36-4293-aea6-93583a9c6b63",
+        "stop:d89bfaf7-cb54-4400-89eb-48f2b7197fea",
+        "shop:e558d367-5e00-418c-b7c5-7afe76553da5",
+        "shop:b631e38b-87ef-420e-b45a-327761437dab",
+        "shop:579fa64c-0b47-487f-bd66-1c1a214d1b4c",
+        "shop:227238cb-4ddb-442f-ae53-bae6aefeba51"
+      ]
+    },
+    {
+      "id": "day-2",
+      "date": "2026-10-20",
+      "title": "太宰府一日",
+      "startTime": "08:30",
+      "endTime": "20:00",
+      "pace": "relaxed",
+      "stops": []
+    },
+    {
+      "id": "day-3",
+      "date": "2026-10-21",
+      "title": "由布院与温泉",
+      "startTime": "08:30",
+      "endTime": "20:00",
+      "pace": "normal",
+      "stops": []
+    },
+    {
+      "id": "day-4",
+      "date": "2026-10-22",
+      "title": "门司港散步",
+      "startTime": "09:00",
+      "endTime": "20:00",
+      "pace": "relaxed",
+      "stops": []
+    },
+    {
+      "id": "day-5",
+      "date": "2026-10-23",
+      "title": "福冈自由活动",
+      "startTime": "09:00",
+      "endTime": "18:00",
+      "pace": "normal",
+      "stops": []
+    }
+  ],
+  "trip": {
+    "id": "trip-kyushu-2026",
+    "name": "九州秋日之旅",
+    "destination": "九州 · 福冈",
+    "startDate": "2026-10-19",
+    "endDate": "2026-10-23",
+    "pace": "normal",
+    "interests": [
+      "历史文化",
+      "城市散步",
+      "当地美食",
+      "购物"
+    ]
+  },
+  "shopping": [
+    {
+      "id": "shop-tenjin",
+      "name": "药妆补货",
+      "category": "cosmetics",
+      "storeName": "天神地下街",
+      "area": "天神",
+      "estimatedPrice": 4000,
+      "currency": "JPY",
+      "purchased": false,
+      "dayId": "day-5"
+    },
+    {
+      "id": "e558d367-5e00-418c-b7c5-7afe76553da5",
+      "name": "Zoff 博多运河城店",
+      "purchased": false,
+      "dayId": "day-1",
+      "currency": "JPY",
+      "parentPlaceId": "d89bfaf7-cb54-4400-89eb-48f2b7197fea"
+    },
+    {
+      "id": "b631e38b-87ef-420e-b45a-327761437dab",
+      "name": "兑换JR PASS",
+      "purchased": false,
+      "dayId": "day-1",
+      "currency": "JPY",
+      "todoKind": "checkin",
+      "parentPlaceId": "00ee497d-8b16-4c9b-b6b0-812dc0899ac1"
+    },
+    {
+      "id": "579fa64c-0b47-487f-bd66-1c1a214d1b4c",
+      "name": "1：1高达",
+      "purchased": false,
+      "dayId": "day-1",
+      "currency": "JPY",
+      "todoKind": "checkin",
+      "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
+    },
+    {
+      "id": "227238cb-4ddb-442f-ae53-bae6aefeba51",
+      "name": "Bakuro Meat",
+      "purchased": false,
+      "dayId": "day-1",
+      "currency": "JPY",
+      "todoKind": "food",
+      "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowDown, ArrowUp, CalendarDays, Car, Check, ChevronDown, ChevronRight, Circle, CircleEllipsis, Compass, Footprints, GripVertical, Map, MapPin, Minus, Navigation, Pencil, Plus, Search, ShoppingBag, SkipForward, Sparkles, TrainFront, Trash2, Utensils, X } from "lucide-react";
 import { initialDayPlans, initialPlaces, initialShopping, initialTrip } from "@/lib/demo-data";
+import seedJson from "@/data/seed.json";
 import type { AppSection, DayPlan, Place, PlannedStop, ShoppingItem, StopStatus, TravelMode, TripProfile } from "@/lib/domain";
 import { buildGoogleMapsDirUrl, buildPlaceEmbedUrl, buildRouteEmbedUrl, fetchDayRoute, modeLabel, type DayRoute, type RoutePoint } from "@/lib/directions";
 import { addMinutes, moveStop, recalcStopTimes, stopLimitForPace, stopStatus, suggestStopOrder } from "@/lib/itinerary";
@@ -39,7 +40,7 @@ function readJson<T>(key: string): T | null {
 }
 
 function initialTripData(): TripData {
-  return { places: initialPlaces, plans: initialDayPlans, trip: initialTrip, shopping: initialShopping };
+  return cloneTripData(seedJson as unknown as TripData);
 }
 
 function cloneTripData(data: TripData): TripData {
