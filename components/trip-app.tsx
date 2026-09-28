@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, CalendarDays, ChevronRight, CircleEllipsis, Compass, Map, MapPin, Pencil, Plus, Search, Sparkles, Trash2, Utensils, X } from "lucide-react";
-import { initialDayPlans, initialPlaces, initialTrip } from "@/lib/demo-data";
-import type { AppSection, DayPlan, Place, TripProfile } from "@/lib/domain";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { ArrowDown, ArrowUp, CalendarDays, Car, Check, ChevronDown, ChevronRight, Circle, CircleEllipsis, Compass, Footprints, GripVertical, Map, MapPin, Minus, Navigation, Pencil, Plus, Search, ShoppingBag, SkipForward, Sparkles, TrainFront, Trash2, Utensils, X } from "lucide-react";
+import { initialDayPlans, initialPlaces, initialShopping, initialTrip } from "@/lib/demo-data";
+import type { AppSection, DayPlan, Place, PlannedStop, ShoppingItem, StopStatus, TravelMode, TripProfile } from "@/lib/domain";
+import { buildGoogleMapsDirUrl, buildPlaceEmbedUrl, buildRouteEmbedUrl, fetchDayRoute, modeLabel, type DayRoute, type RoutePoint } from "@/lib/directions";
+import { addMinutes, moveStop, recalcStopTimes, stopLimitForPace, stopStatus, suggestStopOrder } from "@/lib/itinerary";
 import { candidateToPlace, searchInternetPlaces, type InternetPlaceCandidate } from "@/lib/place-search";
+import { matchParentPlaceId, mergeTimeline, shoppingForDay, shoppingTotals, stopCardKey, type TimelineEntry } from "@/lib/shopping";
 
 const nav: Array<{ id: AppSection; label: string; icon: typeof Compass }> = [
   { id: "today", label: "今日", icon: Compass },
@@ -17,12 +20,9 @@ const nav: Array<{ id: AppSection; label: string; icon: typeof Compass }> = [
 const storageKey = "japan-trip-demo-places-v1";
 const plansStorageKey = "japan-trip-demo-plans-v1";
 const tripStorageKey = "japan-trip-demo-profile-v1";
+const shoppingStorageKey = "japan-trip-demo-shopping-v1";
 
-function addMinutes(time: string, minutes: number) {
-  const [hour, minute] = time.split(":").map(Number);
-  const total = hour * 60 + minute + minutes;
-  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
+type Todo = { key: string; refId: string; kind: "stop" | "shopping" | "food" | "checkin"; label: string; done: boolean; meta?: string };
 
 function buildDayPlans(profile: TripProfile): DayPlan[] {
   const start = new Date(`${profile.startDate}T00:00:00Z`);
@@ -47,27 +47,47 @@ export function TripApp() {
   const [trip, setTrip] = useState<TripProfile>(initialTrip);
   const [showTripWizard, setShowTripWizard] = useState(false);
   const [showAddPlace, setShowAddPlace] = useState(false);
+  const [shopping, setShopping] = useState<ShoppingItem[]>(initialShopping);
+  const [showAddShopping, setShowAddShopping] = useState(false);
+  const [activeDayId, setActiveDayId] = useState(initialDayPlans[0]?.id ?? "");
+  const [showTodayPlace, setShowTodayPlace] = useState(false);
+  const [editingCard, setEditingCard] = useState<{ dayId: string; key: string } | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const activePlan = plans.find((day) => day.id === activeDayId) ?? plans[0];
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey);
-    if (saved) queueMicrotask(() => setPlaces(JSON.parse(saved) as Place[]));
     const savedPlans = window.localStorage.getItem(plansStorageKey);
-    if (savedPlans) queueMicrotask(() => setPlans(JSON.parse(savedPlans) as DayPlan[]));
     const savedTrip = window.localStorage.getItem(tripStorageKey);
-    if (savedTrip) queueMicrotask(() => setTrip(JSON.parse(savedTrip) as TripProfile));
+    const savedShopping = window.localStorage.getItem(shoppingStorageKey);
+    queueMicrotask(() => {
+      if (saved) setPlaces(JSON.parse(saved) as Place[]);
+      if (savedPlans) setPlans(JSON.parse(savedPlans) as DayPlan[]);
+      if (savedTrip) setTrip(JSON.parse(savedTrip) as TripProfile);
+      if (savedShopping) setShopping(JSON.parse(savedShopping) as ShoppingItem[]);
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(storageKey, JSON.stringify(places));
-  }, [places]);
+  }, [places, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(plansStorageKey, JSON.stringify(plans));
-  }, [plans]);
+  }, [plans, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(tripStorageKey, JSON.stringify(trip));
-  }, [trip]);
+  }, [trip, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(shoppingStorageKey, JSON.stringify(shopping));
+  }, [shopping, hydrated]);
 
   const filteredPlaces = useMemo(() => places.filter((place) => {
     const food = place.kind === "food" || place.kind === "cafe";
@@ -95,16 +115,140 @@ export function TripApp() {
   }
 
   function createTrip(profile: TripProfile) {
+    const nextPlans = buildDayPlans(profile);
     setTrip(profile);
     setPlaces([]);
-    setPlans(buildDayPlans(profile));
+    setPlans(nextPlans);
+    setActiveDayId(nextPlans[0]?.id ?? "");
     setShowTripWizard(false);
-    setSection("plan");
+    setSection("today");
+  }
+
+  function quickAddStop(place: Place) {
+    setPlaces((current) => current.some((item) => item.id === place.id) ? current : [...current, place]);
+    setPlans((current) => current.map((day) => day.id === activeDayId ? { ...day, stops: day.stops.some((stop) => stop.placeId === place.id) ? day.stops : [...day.stops, { placeId: place.id, time: addMinutes(day.startTime, day.stops.length * 110) }] } : day));
+    setShowTodayPlace(false);
   }
 
   function savePlan(next: DayPlan) {
     setPlans((current) => current.map((day) => day.id === next.id ? next : day));
     setEditingDayId(null);
+  }
+
+  function setStopStatus(dayId: string, placeId: string, status: StopStatus) {
+    setPlans((current) => current.map((day) => day.id === dayId ? { ...day, stops: day.stops.map((stop) => stop.placeId === placeId ? { ...stop, status } : stop) } : day));
+  }
+
+  const placeLookup = (placeId: string) => places.find((place) => place.id === placeId);
+
+  function setDayOrder(dayId: string, order: string[]) {
+    setPlans((current) => current.map((day) => {
+      if (day.id !== dayId) return day;
+      const orderedStops = order
+        .filter((key) => key.startsWith("stop:"))
+        .map((key) => day.stops.find((stop) => `stop:${stop.placeId}` === key))
+        .filter((stop): stop is PlannedStop => Boolean(stop));
+      const leftover = day.stops.filter((stop) => !orderedStops.some((item) => item.placeId === stop.placeId));
+      return { ...day, stops: recalcStopTimes([...orderedStops, ...leftover], day.startTime, placeLookup), order };
+    }));
+  }
+
+  function deleteCard(dayId: string, key: string) {
+    if (key.startsWith("stop:")) {
+      const placeId = key.slice(5);
+      setPlans((current) => current.map((day) => day.id === dayId ? { ...day, stops: day.stops.filter((stop) => stop.placeId !== placeId), order: day.order?.filter((item) => item !== key) } : day));
+      setShopping((current) => current.map((item) => item.parentPlaceId === placeId ? { ...item, parentPlaceId: undefined } : item));
+    } else {
+      const id = key.slice(5);
+      setShopping((current) => current.filter((item) => item.id !== id));
+      setPlans((current) => current.map((day) => day.id === dayId ? { ...day, order: day.order?.filter((item) => item !== key) } : day));
+    }
+  }
+
+  function moveCardToDay(fromDayId: string, key: string, toDayId: string) {
+    if (fromDayId === toDayId) return;
+    if (key.startsWith("stop:")) {
+      const placeId = key.slice(5);
+      setPlans((current) => {
+        const source = current.find((day) => day.id === fromDayId);
+        const stop = source?.stops.find((item) => item.placeId === placeId);
+        if (!stop) return current;
+        return current.map((day) => {
+          if (day.id === fromDayId) return { ...day, stops: day.stops.filter((item) => item.placeId !== placeId), order: day.order?.filter((item) => item !== key) };
+          if (day.id === toDayId && !day.stops.some((item) => item.placeId === placeId)) return { ...day, stops: recalcStopTimes([...day.stops, stop], day.startTime, placeLookup), order: [...(day.order ?? []), key] };
+          return day;
+        });
+      });
+      const placeName = placeLookup(placeId)?.name;
+      const refs = placeName ? [{ id: placeId, name: placeName }] : [];
+      setShopping((current) => current.map((item) => matchParentPlaceId(item, refs) === placeId ? { ...item, dayId: toDayId, parentPlaceId: placeId } : item));
+    } else {
+      const id = key.slice(5);
+      setShopping((current) => current.map((item) => item.id === id ? { ...item, dayId: toDayId } : item));
+      setPlans((current) => current.map((day) => {
+        if (day.id === fromDayId) return { ...day, order: day.order?.filter((item) => item !== key) };
+        if (day.id === toDayId) return { ...day, order: [...(day.order ?? []), key] };
+        return day;
+      }));
+    }
+  }
+
+  function duplicateCard(key: string) {
+    if (!key.startsWith("shop:")) return;
+    const id = key.slice(5);
+    setShopping((current) => {
+      const item = current.find((entry) => entry.id === id);
+      return item ? [...current, { ...item, id: crypto.randomUUID(), purchased: false, name: `${item.name} 副本` }] : current;
+    });
+  }
+
+  function addShoppingCard(title: string, kind: "shopping" | "food" | "checkin" = "shopping") {
+    const name = title.trim();
+    if (!name) return;
+    const id = crypto.randomUUID();
+    setShopping((current) => [...current, { id, name, purchased: false, dayId: activeDayId, currency: "JPY", todoKind: kind }]);
+    setPlans((current) => current.map((day) => day.id === activeDayId ? { ...day, order: [...(day.order ?? []), `shop:${id}`] } : day));
+  }
+
+  function updateShopping(id: string, patch: Partial<ShoppingItem>) {
+    setShopping((current) => current.map((item) => {
+      if (item.id !== id) return item;
+      const next = { ...item, ...patch };
+      if (patch.parentPlaceId) {
+        const parentDay = plans.find((day) => day.stops.some((stop) => stop.placeId === patch.parentPlaceId));
+        if (parentDay) next.dayId = parentDay.id;
+      }
+      return next;
+    }));
+  }
+
+  function updateStop(dayId: string, placeId: string, patch: Partial<PlannedStop>) {
+    setPlans((current) => current.map((day) => day.id === dayId ? { ...day, stops: day.stops.map((stop) => stop.placeId === placeId ? { ...stop, ...patch } : stop) } : day));
+  }
+
+  function addShopping(form: FormData) {
+    const name = String(form.get("name") ?? "").trim();
+    if (!name) return;
+    const price = Number(form.get("estimatedPrice"));
+    const parentPlaceId = String(form.get("parentPlaceId") || "") || undefined;
+    const parentDayId = parentPlaceId ? plans.find((day) => day.stops.some((stop) => stop.placeId === parentPlaceId))?.id : undefined;
+    setShopping((current) => [...current, {
+      id: crypto.randomUUID(), name, purchased: false,
+      category: (String(form.get("category") || "other") as ShoppingItem["category"]),
+      storeName: String(form.get("storeName") || "") || undefined,
+      area: String(form.get("area") || "") || undefined,
+      dayId: parentDayId ?? (String(form.get("dayId") || "") || undefined),
+      time: String(form.get("time") || "") || undefined,
+      estimatedPrice: Number.isFinite(price) && price > 0 ? price : undefined,
+      parentPlaceId,
+      todoKind: ((): "shopping" | "food" | "checkin" => { const value = String(form.get("todoKind") || "shopping"); return value === "checkin" || value === "food" ? value : "shopping"; })(),
+      currency: "JPY",
+    }]);
+    setShowAddShopping(false);
+  }
+
+  function togglePurchased(id: string) {
+    setShopping((current) => current.map((item) => item.id === id ? { ...item, purchased: !item.purchased } : item));
   }
 
   function autoFillPlans() {
@@ -135,7 +279,7 @@ export function TripApp() {
           <button className="avatar" aria-label="个人设置">FG</button>
         </header>
 
-        {section === "today" && <Today places={places} plan={plans[0]} onDining={() => { setSection("places"); setDiningOnly(true); }} onOpenMap={() => setSection("map")} onPlan={() => setSection("plan")} />}
+        {section === "today" && <Today places={places} plan={activePlan} plans={plans} activeDayId={activePlan?.id ?? ""} shopping={shopping} onSelectDay={setActiveDayId} onEditDay={setEditingDayId} onQuickAddPlace={() => setShowTodayPlace(true)} onDining={() => { setSection("places"); setDiningOnly(true); }} onAddShopping={() => setShowAddShopping(true)} onSetStatus={(placeId, status) => { if (activePlan) setStopStatus(activePlan.id, placeId, status); }} onTogglePurchased={togglePurchased} onReorder={(order) => { if (activePlan) setDayOrder(activePlan.id, order); }} onMoveCardToDay={(key, toDayId) => { if (activePlan) moveCardToDay(activePlan.id, key, toDayId); }} onAddCard={addShoppingCard} onAddPlace={quickAddStop} onOpenCard={(key) => { if (activePlan) setEditingCard({ dayId: activePlan.id, key }); }} />}
         {section === "plan" && <Plan trip={trip} places={places} plans={plans} onEdit={setEditingDayId} onAutoFill={autoFillPlans} onNew={() => setShowTripWizard(true)} />}
         {section === "map" && <MapView places={places} />}
         {section === "places" && <Places places={filteredPlaces} diningOnly={diningOnly} setDiningOnly={setDiningOnly} query={query} setQuery={setQuery} onAdd={() => setShowAdd(true)} onAddPlace={() => setShowAddPlace(true)} onAddToPlan={(placeId) => { const targetId=plans[0]?.id; if(!targetId)return; setPlans((current) => current.map((day, index) => index === 0 && !day.stops.some((stop) => stop.placeId === placeId) ? { ...day, stops: [...day.stops, { placeId, time: addMinutes(day.startTime, day.stops.length * 110) }] } : day)); setSection("plan"); setEditingDayId(targetId); }} />}
@@ -145,17 +289,227 @@ export function TripApp() {
       <nav className="bottom-nav" aria-label="主导航">{nav.map((item) => <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><item.icon size={21}/><span>{item.label}</span></button>)}</nav>
       {showAdd && <DiningDialog onClose={() => setShowAdd(false)} onSubmit={addDining} />}
       {showAddPlace && <PlaceDialog onClose={() => setShowAddPlace(false)} onSubmit={addPlace} />}
+      {showTodayPlace && <PlaceDialog onClose={() => setShowTodayPlace(false)} onSubmit={quickAddStop} />}
+      {showAddShopping && <ShoppingDialog plans={plans} defaultDayId={activeDayId} parentOptions={(activePlan?.stops ?? []).map((stop) => places.find((place) => place.id === stop.placeId)).filter((place): place is Place => Boolean(place)).map((place) => ({ id: place.id, name: place.name }))} onClose={() => setShowAddShopping(false)} onSubmit={addShopping} />}
       {showTripWizard && <TripWizard current={trip} onClose={() => setShowTripWizard(false)} onCreate={createTrip} />}
       {editingDayId && <DayEditor day={plans.find((day) => day.id === editingDayId)!} places={places} onCreatePlace={(place) => setPlaces((current) => [...current, place])} onClose={() => setEditingDayId(null)} onSave={savePlan} />}
+      {editingCard && <CardEditor day={plans.find((day) => day.id === editingCard.dayId)!} plans={plans} places={places} shopping={shopping} cardKey={editingCard.key} onClose={() => setEditingCard(null)} onDelete={(key) => { deleteCard(editingCard.dayId, key); setEditingCard(null); }} onDuplicate={duplicateCard} onMoveToDay={(key, toDayId) => { moveCardToDay(editingCard.dayId, key, toDayId); setEditingCard(null); }} onUpdateShopping={updateShopping} onUpdateStop={(placeId, patch) => updateStop(editingCard.dayId, placeId, patch)} />}
     </div>
   );
 }
 
-function Today({ places, plan, onDining, onOpenMap, onPlan }: { places: Place[]; plan?: DayPlan; onDining: () => void; onOpenMap: () => void; onPlan:()=>void }) {
-  const items = plan?.stops.map((stop) => ({ ...stop, place: places.find((place) => place.id === stop.placeId) })).filter((item): item is typeof item & { place: Place } => Boolean(item.place)) ?? [];
-  const next = items.find((item) => !item.visited);
-  if (!plan || !next) return <section className="blank-guide"><span>🗺️</span><p className="eyebrow">START FROM ZERO</p><h2>开始制作你的旅行攻略</h2><p>当前还没有可执行的行程。先添加想去的地点与美食，再由系统半自动分配到每天。</p><div><button className="primary" onClick={onPlan}><Sparkles size={17}/>打开行程规划</button><button onClick={onDining}><Utensils size={17}/>添加美食</button></div></section>;
-  return <div className="page-grid"><section className="content-column"><article className="next-card"><div className="next-art">{next.place.emoji}<span>下一站</span></div><div className="next-body"><p className="eyebrow">{next.time} · {next.place.area}</p><h2>{next.place.name}</h2><p>{next.place.note || `建议停留 ${next.place.duration} 分钟。可在行程页继续调整时间与顺序。`}</p><div className="actions"><button className="primary" onClick={onOpenMap}><MapPin size={17}/>打开地图</button><button>标记到访</button></div></div></article><div className="section-heading"><div><p className="eyebrow">{plan.date} · DAY 1</p><h2>{plan.title}</h2></div><button className="text-button" onClick={onPlan}>编辑行程</button></div><div className="timeline">{items.map((item,index)=><div key={item.placeId} className="timeline-group"><div className="timeline-item"><time>{item.time}</time><span className="dot">{index+1}</span><div className="timeline-card"><span className="place-emoji">{item.place.emoji}</span><div><strong>{item.place.name}</strong><p>{item.place.area} · 停留 {item.place.duration} 分钟</p>{item.place.kind==="food"&&<span className="food-note">{item.place.mustTry} · {item.place.reservation}</span>}</div><ChevronRight size={18}/></div></div>{index<items.length-1&&<div className="transit"><span></span>↳ 预留移动时间 30 分钟</div>}</div>)}</div></section><aside className="right-column"><button className="mini-map" onClick={onOpenMap}><div className="map-label"><MapPin size={16}/>在 Google Maps 查看 · {items.length}站</div>{items.slice(0,4).map((_,index)=><span key={index} className={`pin pin-${index+1}`}>{index+1}</span>)}<div className="route-line"></div></button><div className="dining-callout"><div className="callout-icon"><Utensils/></div><div><p className="eyebrow">FOOD NOTE</p><h3>管理用餐计划</h3><p>餐厅、预约与必吃菜</p></div><button onClick={onDining}><ChevronRight/></button></div></aside></div>;
+function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEditDay, onQuickAddPlace, onDining, onAddShopping, onSetStatus, onTogglePurchased, onReorder, onMoveCardToDay, onAddCard, onAddPlace, onOpenCard }: { places: Place[]; plan?: DayPlan; plans: DayPlan[]; activeDayId: string; shopping: ShoppingItem[]; onSelectDay: (id: string) => void; onEditDay: (id: string) => void; onQuickAddPlace: () => void; onDining: () => void; onAddShopping: () => void; onSetStatus: (placeId: string, status: StopStatus) => void; onTogglePurchased: (id: string) => void; onReorder: (order: string[]) => void; onMoveCardToDay: (key: string, toDayId: string) => void; onAddCard: (title: string, kind: "shopping" | "food" | "checkin") => void; onAddPlace: (place: Place) => void; onOpenCard: (key: string) => void }) {
+  const dayShopping = useMemo(() => plan ? shoppingForDay(shopping, plan.id) : [], [shopping, plan]);
+  const resolvePlace = useCallback((placeId: string) => places.find((place) => place.id === placeId), [places]);
+  const entries = useMemo(() => plan ? mergeTimeline(plan.stops, dayShopping, resolvePlace, plan.order) : [], [plan, dayShopping, resolvePlace]);
+  const stopEntries = entries.filter((entry): entry is Extract<TimelineEntry, { kind: "stop" }> => entry.kind === "stop" && Boolean(entry.place));
+  const primaryEntries = useMemo(() => entries.filter((entry): entry is Extract<TimelineEntry, { kind: "stop" }> => entry.kind === "stop" && Boolean(entry.place) && entry.place!.kind !== "food" && entry.place!.kind !== "cafe"), [entries]);
+  const todosByParent = useMemo(() => {
+    const map = new globalThis.Map<string, Todo[]>();
+    const primaryRefs = primaryEntries.map((candidate) => ({ id: candidate.place!.id, name: candidate.place!.name }));
+    for (const entry of entries) {
+      let parent = "";
+      let todo: Todo | null = null;
+      if (entry.kind === "stop" && entry.place && (entry.place.kind === "food" || entry.place.kind === "cafe")) {
+        parent = entry.stop.parentPlaceId ?? "";
+        todo = { key: entry.key, refId: entry.stop.placeId, kind: "stop", label: entry.place.name, done: stopStatus(entry.stop) === "visited", meta: entry.place.cuisine ?? entry.place.meal };
+      } else if (entry.kind === "shopping") {
+        parent = matchParentPlaceId(entry.item, primaryRefs) ?? "";
+        todo = { key: entry.key, refId: entry.item.id, kind: entry.item.todoKind ?? "shopping", label: entry.item.name, done: entry.item.purchased, meta: entry.item.storeName ?? (entry.item.estimatedPrice ? `¥${entry.item.estimatedPrice}` : undefined) };
+      }
+      if (todo) { const list = map.get(parent) ?? []; list.push(todo); map.set(parent, list); }
+    }
+    return map;
+  }, [entries, primaryEntries]);
+  const todosFor = (placeId: string) => todosByParent.get(placeId) ?? [];
+  const looseTodos = todosByParent.get("") ?? [];
+  const [collapsedTodos, setCollapsedTodos] = useState<string[]>([]);
+  const toggleTodos = (id: string) => setCollapsedTodos((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]);
+  const renderTodoBlock = (id: string, todos: Todo[]) => {
+    if (todos.length === 0) return null;
+    const collapsed = collapsedTodos.includes(id);
+    const loose = id === "__loose";
+    return <div className={`todo-block${loose ? " loose" : ""}`}><button type="button" className="todo-toggle" onClick={(event) => { event.stopPropagation(); toggleTodos(id); }}>{collapsed ? <ChevronRight size={13}/> : <ChevronDown size={13}/>}{loose ? "本日待办（未指定地点）" : "待办"} {todos.filter((todo) => todo.done).length}/{todos.length}</button>{!collapsed && <ul className="todo-list">{todos.map((todo) => <li key={todo.key} className={todo.done ? "done" : ""}><button type="button" className="todo-check" aria-label="切换完成" onClick={(event) => { event.stopPropagation(); if (todo.kind === "stop") onSetStatus(todo.refId, todo.done ? "planned" : "visited"); else onTogglePurchased(todo.refId); }}>{todo.done ? <Check size={12}/> : null}</button><button type="button" className="todo-text" onClick={(event) => { event.stopPropagation(); onOpenCard(todo.key); }}>{todo.label}</button>{todo.meta && <span className="todo-meta">{todo.meta}</span>}</li>)}</ul>}</div>;
+  };
+  const nextPlanned = primaryEntries.find((entry) => stopStatus(entry.stop) === "planned");
+  const points = useMemo(() => {
+    if (!plan) return [];
+    return plan.stops
+      .map((stop) => places.find((place) => place.id === stop.placeId))
+      .filter((place): place is Place => Boolean(place && place.latitude != null && place.longitude != null))
+      .map((place) => ({ label: place.name, latitude: place.latitude as number, longitude: place.longitude as number }));
+  }, [plan, places]);
+  const totals = useMemo(() => shoppingTotals(dayShopping), [dayShopping]);
+  const entryId = useCallback((entry: TimelineEntry) => entry.key, []);
+  const [mode, setMode] = useState<TravelMode>("walk");
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [mapMode, setMapMode] = useState<"place" | "route">("place");
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [dropDayId, setDropDayId] = useState<string | null>(null);
+  const [newCardTitle, setNewCardTitle] = useState("");
+  const [newCardKind, setNewCardKind] = useState<"shopping" | "food" | "checkin">("shopping");
+  const [mapQuery, setMapQuery] = useState("");
+  const [mapResults, setMapResults] = useState<InternetPlaceCandidate[]>([]);
+  const [mapSearchStatus, setMapSearchStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [activeLegIndex, setActiveLegIndex] = useState<number | null>(null);
+  const [mapZoom, setMapZoom] = useState(15);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [routeResult, setRouteResult] = useState<{ key: string; routes: Partial<Record<TravelMode, DayRoute>> } | null>(null);
+
+  const checkedStops = useMemo(() => {
+    if (!plan || checkedIds.length < 2) return [];
+    return plan.stops
+      .filter((stop) => checkedIds.includes(stopCardKey(stop.placeId)))
+      .map((stop) => places.find((place) => place.id === stop.placeId))
+      .filter((place): place is Place => Boolean(place && place.latitude != null && place.longitude != null))
+      .map((place) => ({ label: place.name, latitude: place.latitude as number, longitude: place.longitude as number }));
+  }, [plan, places, checkedIds]);
+  const routePoints = checkedStops.length >= 2 ? checkedStops : points;
+  const usesSelection = routePoints !== points;
+  const routeKey = routePoints.length >= 2 ? routePoints.map((point) => `${point.latitude},${point.longitude}`).join(";") : "";
+
+  useEffect(() => {
+    if (!routeKey) return;
+    const controller = new AbortController();
+    const travelModes: TravelMode[] = ["walk", "transit", "drive"];
+    Promise.all(travelModes.map(async (travelMode) => [travelMode, await fetchDayRoute(routePoints, travelMode, controller.signal)] as const))
+      .then((entries) => { if (!controller.signal.aborted) setRouteResult({ key: routeKey, routes: Object.fromEntries(entries) as Partial<Record<TravelMode, DayRoute>> }); })
+      .catch(() => { if (!controller.signal.aborted) setRouteResult({ key: routeKey, routes: {} }); });
+    return () => controller.abort();
+  }, [routeKey, routePoints]);
+
+  const currentRoutes = routeResult && routeResult.key === routeKey ? routeResult.routes : null;
+  const route = currentRoutes?.[mode] ?? null;
+  const routeStatus: "idle" | "loading" | "ready" = !routeKey ? "idle" : !currentRoutes ? "loading" : "ready";
+  const legIndex = activeLegIndex != null && route && activeLegIndex < route.legs.length ? activeLegIndex : null;
+
+  if (!plan) return <section className="blank-guide"><span>🗺️</span><p className="eyebrow">START FROM ZERO</p><h2>开始制作你的旅行攻略</h2><p>先新建一个攻略框架，再添加想去的地点与美食。</p><div><button className="primary" onClick={onQuickAddPlace}><Plus size={17}/>添加地点</button><button onClick={onDining}><Utensils size={17}/>添加美食</button></div></section>;
+
+  const defaultSelectionId = nextPlanned ? entryId(nextPlanned) : entries[0] ? entryId(entries[0]) : "";
+  const activeSelectionId = selectedId || defaultSelectionId;
+  const activeEntry = entries.find((entry) => entryId(entry) === activeSelectionId);
+  const next = activeEntry?.kind === "stop" ? activeEntry : nextPlanned;
+  const activePlace = activeEntry?.kind === "stop" ? activeEntry.place : undefined;
+  const activeShopping = activeEntry?.kind === "shopping" ? activeEntry.item : undefined;
+  const activeLabel = activePlace?.name ?? activeShopping?.name ?? "当天地点";
+  const activePoint: RoutePoint = activePlace
+    ? { label: activePlace.name, latitude: activePlace.latitude, longitude: activePlace.longitude }
+    : activeShopping
+      ? { label: [activeShopping.name, activeShopping.storeName, activeShopping.area].filter(Boolean).join(" ") }
+      : routePoints[0] ?? { label: "Fukuoka, Japan" };
+  const legPoints = legIndex != null && routePoints[legIndex] && routePoints[legIndex + 1] ? [routePoints[legIndex], routePoints[legIndex + 1]] : null;
+  const mapUrl = legPoints ? buildRouteEmbedUrl(legPoints, mode, mapZoom) : mapMode === "route" ? buildRouteEmbedUrl(routePoints, mode, mapZoom) : buildPlaceEmbedUrl(activePoint, mapZoom);
+  const externalUrl = buildGoogleMapsDirUrl(routePoints, mode);
+  const externalPlaceUrl = activePlace?.mapUrl ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activePoint.label)}`;
+  const selectEntry = (entry: TimelineEntry) => { setSelectedId(entryId(entry)); setMapMode("place"); };
+  const toggleChecked = (entry: TimelineEntry) => { setCheckedIds((ids) => { const id = entryId(entry); return ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]; }); setMapMode("route"); };
+  function startCardDrag(event: ReactPointerEvent<HTMLButtonElement>, key: string) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragKey(key);
+  }
+  function cardDropIndex(clientY: number) {
+    const rows = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-card-row]") ?? []);
+    if (rows.length === 0) return 0;
+    const found = rows.findIndex((row) => { const rect = row.getBoundingClientRect(); return clientY < rect.top + rect.height / 2; });
+    return found === -1 ? rows.length - 1 : found;
+  }
+  function dragCardOver(event: ReactPointerEvent<HTMLButtonElement>) {
+    const element = document.elementFromPoint(event.clientX, event.clientY);
+    const tab = element?.closest<HTMLElement>("[data-day-tab]");
+    setDropDayId(tab?.dataset.dayTab ?? null);
+    if (!dragKey) return;
+    const keys = entries.map((entry) => entry.key);
+    const from = keys.indexOf(dragKey);
+    if (from === -1) return;
+    const target = cardDropIndex(event.clientY);
+    if (target === from) return;
+    const next = keys.slice();
+    next.splice(from, 1);
+    next.splice(target, 0, dragKey);
+    onReorder(next);
+  }
+  function endCardDrag() {
+    if (dragKey && dropDayId) onMoveCardToDay(dragKey, dropDayId);
+    setDragKey(null);
+    setDropDayId(null);
+  }
+  function submitNewCard() {
+    const title = newCardTitle.trim();
+    if (!title) return;
+    onAddCard(title, newCardKind);
+    setNewCardTitle("");
+  }
+  async function searchMap() {
+    const query = mapQuery.trim();
+    if (!query || mapSearchStatus === "loading") return;
+    setMapSearchStatus("loading");
+    setMapResults([]);
+    try {
+      const results = await searchInternetPlaces(query);
+      setMapResults(results);
+      setMapSearchStatus(results.length ? "idle" : "error");
+    } catch {
+      setMapResults([]);
+      setMapSearchStatus("error");
+    }
+  }
+  function addSearchedPlace(candidate: InternetPlaceCandidate) {
+    const place = candidateToPlace(candidate, candidate.name, 60);
+    onAddPlace(place);
+    setSelectedId(stopCardKey(place.id));
+    setMapMode("place");
+    setMapResults([]);
+    setMapQuery("");
+    setMapSearchStatus("idle");
+  }
+  const sourceLabel = route?.source === "google" ? "Google 实时" : route?.source === "osrm" ? "OpenStreetMap" : "本地估算";
+  const modeTabs: Array<{ id: TravelMode; label: string; icon: typeof Footprints }> = [
+    { id: "walk", label: "步行", icon: Footprints },
+    { id: "transit", label: "公交", icon: TrainFront },
+    { id: "drive", label: "驾车", icon: Car },
+  ];
+
+  return <div className="page-grid">
+    <section className="content-column">
+      {plans.length > 1 &&       <div className="date-strip">{plans.map((day, index) => <button key={day.id} data-day-tab={day.id} className={`${day.id === activeDayId ? "selected" : ""}${dropDayId === day.id ? " drop-target" : ""}`} onClick={() => onSelectDay(day.id)}><small>DAY {index + 1}</small><b>{Number(day.date.slice(-2))}</b></button>)}</div>}
+      {next ? <article className="next-card"><div className="next-art">{next.place!.emoji}<span>下一站</span></div><div className="next-body"><p className="eyebrow">{next.time} · {next.place!.area}</p><h2>{next.place!.name}</h2><p>{next.place!.note || `建议停留 ${next.place!.duration} 分钟。可在下方直接调整。`}</p><div className="actions"><button className="primary" onClick={() => onSetStatus(next.stop.placeId, "visited")}><Check size={17}/>标记到访</button><button onClick={onQuickAddPlace}><Plus size={17}/>添加地点</button><button onClick={() => onSetStatus(next.stop.placeId, "skipped")}><SkipForward size={17}/>跳过</button></div></div></article> : entries.length > 0 ? <article className="next-card done-card"><div className="next-art">✅</div><div className="next-body"><p className="eyebrow">ALL DONE</p><h2>今天的行程已全部完成</h2><p>共 {stopEntries.length} 站，其中 {stopEntries.filter((entry) => stopStatus(entry.stop) === "visited").length} 站已到访。可继续调整或添加新的地点。</p><div className="actions"><button className="primary" onClick={() => onEditDay(plan.id)}><CalendarDays size={17}/>编辑这一天</button><button onClick={onQuickAddPlace}><Plus size={17}/>添加地点</button></div></div></article> : <article className="next-card empty-card"><div className="next-art">🧭</div><div className="next-body"><p className="eyebrow">FREE DAY</p><h2>这一天还没有安排</h2><p>添加想去的地点或美食，就会出现在下方时间线中，随时可以直接编辑。</p><div className="actions"><button className="primary" onClick={onQuickAddPlace}><Plus size={17}/>添加地点</button><button onClick={onAddShopping}><ShoppingBag size={17}/>添加购物</button></div></div></article>}
+      <div className="section-heading"><div><p className="eyebrow">{plan.date} · 剩余 {stopEntries.filter((entry) => stopStatus(entry.stop) === "planned").length} 站</p><h2>{plan.title}</h2></div><button className="text-button" onClick={() => onEditDay(plan.id)}>编辑这一天</button></div>
+      <div className="timeline" ref={listRef}>{primaryEntries.map((entry, index) => {
+        const isActive = activeSelectionId === entryId(entry);
+        return <div key={entry.key} className="timeline-group" data-card-row={entry.key}><div className={`timeline-item stop-${stopStatus(entry.stop)}${isActive ? " selected" : ""}${dragKey === entry.key ? " dragging" : ""}`}><time>{entry.time}</time><span className="dot">{stopStatus(entry.stop) === "visited" ? "✓" : index + 1}</span><div className={`timeline-card${isActive ? " selected" : ""}`} role="button" tabIndex={0} onClick={() => selectEntry(entry)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectEntry(entry); } }}><button type="button" className="drag-handle" aria-label="拖动排序" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => startCardDrag(event, entry.key)} onPointerMove={dragCardOver} onPointerUp={endCardDrag} onPointerCancel={endCardDrag}><GripVertical size={15}/></button><label className="route-check" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={checkedIds.includes(entryId(entry))} onChange={() => toggleChecked(entry)} aria-label="加入线路"/></label><span className="place-emoji">{entry.place!.emoji}</span><div><strong>{entry.place!.name}</strong><p>{entry.place!.area} · 停留 {entry.place!.duration} 分钟</p>{entry.place!.kind === "food" && <span className="food-note">{entry.place!.mustTry} · {entry.place!.reservation}</span>}{stopStatus(entry.stop) !== "planned" && <span className={`status-tag ${stopStatus(entry.stop)}`}>{stopStatus(entry.stop) === "visited" ? "已到访" : "已跳过"}</span>}{renderTodoBlock(entry.place!.id, todosFor(entry.place!.id))}</div>{stopStatus(entry.stop) === "planned" ? <button className="timeline-status-button" aria-label="标记到访" onClick={(event) => { event.stopPropagation(); onSetStatus(entry.stop.placeId, "visited"); }}><Check size={16}/></button> : <button className="timeline-status-button" aria-label="恢复为未完成" onClick={(event) => { event.stopPropagation(); onSetStatus(entry.stop.placeId, "planned"); }}><Circle size={16}/></button>}<button className="card-edit-button" aria-label="编辑卡片" onClick={(event) => { event.stopPropagation(); onOpenCard(entry.key); }}><Pencil size={15}/></button></div></div>{index < primaryEntries.length - 1 && <div className="transit"><span></span>↳ 预留移动时间 30 分钟</div>}</div>;
+      })}</div>
+      {renderTodoBlock("__loose", looseTodos)}
+      <form className="card-composer" onSubmit={(event) => { event.preventDefault(); submitNewCard(); }}><select value={newCardKind} onChange={(event) => setNewCardKind(event.target.value as "shopping" | "food" | "checkin")} aria-label="待办类型"><option value="shopping">购物</option><option value="food">美食</option><option value="checkin">打卡点</option></select><input value={newCardTitle} onChange={(event) => setNewCardTitle(event.target.value)} placeholder="+ 添加待办，回车创建" aria-label="添加待办"/><button type="submit" disabled={!newCardTitle.trim()}><Plus size={15}/>添加</button></form>
+      <div className="list-actions"><button onClick={onAddShopping}><ShoppingBag size={16}/>添加购物</button><button onClick={onDining}><Utensils size={16}/>管理用餐</button>{checkedIds.length > 0 && <button onClick={() => setCheckedIds([])}>清空选择（{checkedIds.length}）</button>}{totals.count > 0 && <span className="list-total">购物 {totals.purchased}/{totals.count} 已买 · 约 ¥{totals.estimated}</span>}</div>
+    </section>
+    <aside className="right-column">
+      <div className="map-search-wrap">
+        <form className="map-search" onSubmit={(event) => { event.preventDefault(); void searchMap(); }}><Search size={15}/><input value={mapQuery} onChange={(event) => setMapQuery(event.target.value)} placeholder="搜索地点，一键加为卡片"/><button type="submit" disabled={!mapQuery.trim() || mapSearchStatus === "loading"}>{mapSearchStatus === "loading" ? "查找中…" : "搜索"}</button></form>
+        {mapResults.length > 0 && <div className="map-results">{mapResults.map((candidate) => <button key={candidate.id} type="button" onClick={() => addSearchedPlace(candidate)}><span className="candidate-emoji">{candidate.emoji}</span><span><strong>{candidate.name}</strong><small>{candidate.categoryLabel} · {candidate.area}</small></span><span className="candidate-add"><Plus size={13}/>添加卡片</span></button>)}</div>}
+      </div>
+      {mapMode === "place" && activeEntry && <div className="day-map-detail"><div><p className="eyebrow">{activeEntry.kind === "stop" ? "已选地点" : "已选购物"}</p><h3>{activeLabel}</h3><small>{activePlace?.address ?? [activeShopping?.storeName, activeShopping?.area].filter(Boolean).join(" · ") ?? ""}</small></div><a href={externalPlaceUrl} target="_blank" rel="noreferrer">打开 Google Maps</a></div>}
+      <div className="day-map">
+        <div className="day-map-label"><MapPin size={15}/>{legIndex != null && route ? `${route.legs[legIndex].fromLabel} → ${route.legs[legIndex].toLabel}` : mapMode === "route" ? (points.length > 1 ? `${points.length} 站路线` : "当天路线") : activeLabel}</div>
+        <div className="map-toggle"><button className={mapMode === "place" ? "active" : ""} onClick={() => setMapMode("place")}><MapPin size={13}/>地点</button><button className={mapMode === "route" ? "active" : ""} onClick={() => setMapMode("route")}><Navigation size={13}/>整日路线</button></div>
+        {mapUrl ? <iframe key={mapUrl} title={`Google Maps — ${plan.title}`} src={mapUrl} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/> : <div className="day-map-empty">当天还没有可显示的地点</div>}
+        <div className="map-zoom"><button type="button" aria-label="放大" onClick={() => setMapZoom((zoom) => Math.min(21, zoom + 1))}><Plus size={16}/></button><button type="button" aria-label="缩小" onClick={() => setMapZoom((zoom) => Math.max(3, zoom - 1))}><Minus size={16}/></button></div>
+      </div>
+      <div className="route-panel">
+        <div className="route-head">
+          <div><p className="eyebrow">TRANSIT LEGS</p><h3>{modeLabel[mode]}路线{usesSelection ? ` · 已选 ${routePoints.length} 站` : " · 整日"}</h3></div>
+          <div className="mode-tabs">{modeTabs.map((tab) => <button key={tab.id} className={mode === tab.id ? "active" : ""} onClick={() => setMode(tab.id)}><tab.icon size={14}/>{tab.label}{currentRoutes?.[tab.id] ? <em>{currentRoutes[tab.id]!.totalDurationMinutes}分</em> : null}</button>)}</div>
+        </div>
+        {routeStatus === "loading" && <p className="route-state">正在获取线路…</p>}
+        {routeStatus !== "loading" && route && route.legs.length > 0 && <p className="route-state">{route.totalDurationMinutes} 分钟{route.totalDistanceMeters ? ` · ${formatDistance(route.totalDistanceMeters)}` : ""} · {sourceLabel}</p>}
+        {routeStatus !== "loading" && (!route || route.legs.length === 0) && <p className="route-state">{points.length < 2 ? "需要至少两个带坐标的地点" : "暂无该模式线路，可在 Google Maps 查看"}</p>}
+        <ol className="route-legs">{route?.legs.map((leg, index) => <li key={leg.id} className={`route-leg${legIndex === index ? " active" : ""}${leg.steps && leg.steps.length > 0 ? " has-plan" : ""}`} role="button" tabIndex={0} onClick={() => { setActiveLegIndex(legIndex === index ? null : index); setMapMode("route"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActiveLegIndex(legIndex === index ? null : index); setMapMode("route"); } }}><div className="route-leg-head"><span className="route-index">{index + 1}</span><div><strong>{leg.fromLabel} → {leg.toLabel}</strong><small>{modeLabel[leg.mode]} · {leg.durationMinutes} 分钟{leg.distanceMeters ? ` · ${formatDistance(leg.distanceMeters)}` : ""}</small></div></div>{leg.steps && leg.steps.length > 0 && <div className="route-leg-plan"><ul className="route-steps">{leg.steps.map((step, stepIndex) => <li key={`${leg.id}-${stepIndex}`}><span className="step-icon">{leg.mode === "transit" && step.transitLine ? <TrainFront size={13}/> : leg.mode === "drive" ? <Car size={13}/> : <Footprints size={13}/>}</span><div><strong>{step.instruction}</strong><small>{[step.durationMinutes ? `${step.durationMinutes} 分钟` : null, step.distanceMeters ? formatDistance(step.distanceMeters) : null, step.departureTime && step.arrivalTime ? `${step.departureTime}–${step.arrivalTime}` : null, step.numStops ? `${step.numStops} 站` : null].filter(Boolean).join(" · ")}</small></div></li>)}</ul></div>}</li>)}</ol>
+        {points.length > 1 && <a className="route-open" href={externalUrl} target="_blank" rel="noreferrer"><Navigation size={15}/>在 Google Maps 打开路线</a>}
+        <p className="route-source">线路数据 {sourceLabel} · 仅供规划参考</p>
+      </div>
+    </aside>
+  </div>;
 }
 
 function Places({ places, diningOnly, setDiningOnly, query, setQuery, onAdd, onAddPlace, onAddToPlan }: { places: Place[]; diningOnly: boolean; setDiningOnly:(v:boolean)=>void; query:string; setQuery:(v:string)=>void; onAdd:()=>void; onAddPlace:()=>void; onAddToPlan:(id:string)=>void }) {
@@ -180,22 +534,18 @@ function paceLabel(pace: DayPlan["pace"]) {
   return pace === "relaxed" ? "轻松" : pace === "intensive" ? "充实" : "适中";
 }
 
+function formatDistance(meters: number) {
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} 公里` : `${Math.round(meters)} 米`;
+}
+
 function DayEditor({ day, places, onCreatePlace, onClose, onSave }: { day: DayPlan; places: Place[]; onCreatePlace:(place:Place)=>void; onClose:()=>void; onSave:(day:DayPlan)=>void }) {
   const [draft, setDraft] = useState<DayPlan>(day);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const available = places.filter((place) => !draft.stops.some((stop) => stop.placeId === place.id));
-  const getPlace = (id:string) => places.find((place) => place.id === id);
-
-  function recalculate(stops: DayPlan["stops"], newlyCreated?: Place) {
-    let nextTime = draft.startTime;
-    return stops.map((stop) => {
-      const place = stop.placeId === newlyCreated?.id ? newlyCreated : getPlace(stop.placeId);
-      const fixedDinner = place?.reservation === "已预约" && place.meal === "晚餐";
-      const scheduled = { ...stop, time: fixedDinner ? "19:00" : nextTime };
-      if (!fixedDinner) nextTime = addMinutes(nextTime, (place?.duration ?? 60) + 30);
-      return scheduled;
-    });
-  }
+  const getPlace = useCallback((id:string) => places.find((place) => place.id === id), [places]);
+  const recalculate = useCallback((stops: DayPlan["stops"], newlyCreated?: Place) => recalcStopTimes(stops, draft.startTime, getPlace, newlyCreated), [draft.startTime, getPlace]);
 
   function addStop(placeId:string) {
     if (!placeId) return;
@@ -203,18 +553,17 @@ function DayEditor({ day, places, onCreatePlace, onClose, onSave }: { day: DayPl
   }
 
   function move(index:number, direction:-1|1) {
-    const next = [...draft.stops]; const target = index + direction;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    setDraft((current) => ({ ...current, stops: recalculate(next) }));
+    setDraft((current) => ({ ...current, stops: recalculate(moveStop(current.stops, index, index + direction)) }));
+  }
+
+  function cycleStatus(index:number) {
+    const order: StopStatus[] = ["planned", "visited", "skipped"];
+    setDraft((current) => ({ ...current, stops: current.stops.map((stop, i) => i === index ? { ...stop, status: order[(order.indexOf(stopStatus(stop)) + 1) % order.length] } : stop) }));
   }
 
   function suggest() {
-    const limit = draft.pace === "relaxed" ? 3 : draft.pace === "intensive" ? 6 : 4;
-    const score = { must: 0, want: 1, optional: 2 };
-    const source = draft.stops.length ? draft.stops.map((stop) => getPlace(stop.placeId)).filter((place): place is Place => Boolean(place)) : [...places].sort((a,b)=>score[a.priority]-score[b.priority]).slice(0,limit);
-    const ordered = [...source].sort((a,b) => a.area.localeCompare(b.area) || score[a.priority]-score[b.priority] || Number(a.kind === "food")-Number(b.kind === "food"));
-    setDraft((current) => ({ ...current, stops: recalculate(ordered.map((place) => ({ placeId: place.id, time: current.startTime }))) }));
+    const ordered = suggestStopOrder(places, draft.stops, stopLimitForPace(draft.pace));
+    setDraft((current) => ({ ...current, stops: recalculate(ordered.map((stop) => ({ ...stop, time: current.startTime }))) }));
   }
 
   function createAndAddPlace(place: Place) {
@@ -223,14 +572,42 @@ function DayEditor({ day, places, onCreatePlace, onClose, onSave }: { day: DayPl
     setShowQuickAdd(false);
   }
 
+  function reorderTo(target: number) {
+    if (dragIndex === null || target === dragIndex) return;
+    setDragIndex(target);
+    setDraft((current) => ({ ...current, stops: recalculate(moveStop(current.stops, dragIndex, target)) }));
+  }
+
+  function dropIndexAt(clientY: number) {
+    const rows = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-stop-index]") ?? []);
+    if (rows.length === 0) return 0;
+    const found = rows.findIndex((row) => { const rect = row.getBoundingClientRect(); return clientY < rect.top + rect.height / 2; });
+    return found === -1 ? rows.length - 1 : found;
+  }
+
+  function startDrag(event: ReactPointerEvent<HTMLButtonElement>, index: number) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setDragIndex(index);
+  }
+
+  function dragOver(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (dragIndex === null) return;
+    reorderTo(dropIndexAt(event.clientY));
+  }
+
+  function endDrag() {
+    setDragIndex(null);
+  }
+
   return <div className="dialog-backdrop editor-backdrop" onMouseDown={onClose}><form className="dialog day-editor" onSubmit={(event)=>{event.preventDefault();onSave(draft);}} onMouseDown={(e)=>e.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">EDIT DAY · {day.date}</p><h2>编辑第 {Number(day.date.slice(-2))-18} 天</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div>
     <label>当天主题<input value={draft.title} onChange={(e)=>setDraft({...draft,title:e.target.value})} /></label>
     <div className="form-row three"><label>开始<input type="time" value={draft.startTime} onChange={(e)=>setDraft({...draft,startTime:e.target.value})}/></label><label>结束<input type="time" value={draft.endTime} onChange={(e)=>setDraft({...draft,endTime:e.target.value})}/></label><label>旅行节奏<select value={draft.pace} onChange={(e)=>setDraft({...draft,pace:e.target.value as DayPlan["pace"]})}><option value="relaxed">轻松</option><option value="normal">适中</option><option value="intensive">充实</option></select></label></div>
     <div className="editor-toolbar"><div><h3>当天地点</h3><p>预计时间会按停留时长和 30 分钟移动缓冲重新计算。</p></div><button type="button" className="suggest-button" onClick={suggest}><Sparkles size={15}/>生成排序建议</button></div>
-    <div className="stop-list">{draft.stops.map((stop,index)=>{const place=getPlace(stop.placeId);if(!place)return null;return <div className="edit-stop" key={place.id}><time>{stop.time}</time><span>{place.emoji}</span><div><strong>{place.name}</strong><small>{place.area} · {place.duration}分钟{place.reservation==="已预约"?" · 已预约":""}</small></div><div className="stop-actions"><button type="button" onClick={()=>move(index,-1)} disabled={index===0} aria-label="上移"><ArrowUp size={15}/></button><button type="button" onClick={()=>move(index,1)} disabled={index===draft.stops.length-1} aria-label="下移"><ArrowDown size={15}/></button><button type="button" onClick={()=>setDraft({...draft,stops:draft.stops.filter((_,i)=>i!==index)})} aria-label="移除"><Trash2 size={15}/></button></div></div>})}{draft.stops.length===0&&<div className="editor-empty">这一天还没有地点。可从下方加入，或生成建议。</div>}</div>
+    <div className={`stop-list${dragIndex !== null ? " dragging" : ""}`} ref={listRef}>{draft.stops.map((stop,index)=>{const place=getPlace(stop.placeId);if(!place)return null;const status=stopStatus(stop);return <div className={`edit-stop stop-${status}${dragIndex===index?" dragging":""}`} key={place.id} data-stop-index={index}><button type="button" className="drag-handle" aria-label="拖动排序" onPointerDown={(event)=>startDrag(event,index)} onPointerMove={dragOver} onPointerUp={endDrag} onPointerCancel={endDrag}><GripVertical size={15}/></button><time>{stop.time}</time><span>{place.emoji}</span><div><strong>{place.name}</strong><small>{place.area} · {place.duration}分钟{place.reservation==="已预约"?" · 已预约":""}</small></div><div className="stop-actions"><button type="button" className="status-button" onClick={()=>cycleStatus(index)} aria-label="切换完成状态">{status==="visited"?<Check size={15}/>:status==="skipped"?<SkipForward size={15}/>:<Circle size={15}/>}</button><button type="button" onClick={()=>move(index,-1)} disabled={index===0} aria-label="上移"><ArrowUp size={15}/></button><button type="button" onClick={()=>move(index,1)} disabled={index===draft.stops.length-1} aria-label="下移"><ArrowDown size={15}/></button><button type="button" onClick={()=>setDraft({...draft,stops:draft.stops.filter((_,i)=>i!==index)})} aria-label="移除"><Trash2 size={15}/></button></div></div>})}{draft.stops.length===0&&<div className="editor-empty">这一天还没有地点。可从下方加入，或生成建议。</div>}</div>
     <div className="add-place-heading"><strong>添加地点</strong><span>收藏只是快捷方式，也可以直接创建新地点。</span></div>
     <div className="add-place-methods"><label>从收藏加入<select value="" onChange={(e)=>addStop(e.target.value)}><option value="">选择一个收藏地点…</option>{available.map((place)=><option key={place.id} value={place.id}>{place.emoji} {place.name} · {place.area}</option>)}</select></label><button type="button" className="direct-add-button" onClick={()=>setShowQuickAdd((value)=>!value)}><Plus size={16}/>{showQuickAdd?"收起新地点":"直接创建新地点"}</button></div>
-    {showQuickAdd&&<OnlinePlaceCreator onCreate={createAndAddPlace} submitLabel="创建并加入当天"/>}
+    {showQuickAdd&&<OnlinePlaceCreator onCreate={createAndAddPlace}/>}
     <div className="dialog-actions"><button type="button" onClick={onClose}>取消</button><button className="primary" type="submit">保存当天行程</button></div>
   </form></div>;
 }
@@ -246,49 +623,56 @@ function TripWizard({ current, onClose, onCreate }: { current:TripProfile; onClo
   return <div className="dialog-backdrop" onMouseDown={onClose}><form className="dialog trip-wizard" action={submit} onMouseDown={(e)=>e.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">NEW TRAVEL GUIDE</p><h2>从零创建旅行攻略</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div><p className="wizard-intro">先生成每天的攻略框架，之后再添加地点、美食并逐日编辑。创建后会替换当前设备上的“{current.name}”。</p><label>攻略名称<input name="name" required defaultValue="我的日本之旅" placeholder="例如：东京樱花七日游"/></label><label>主要目的地<input name="destination" required placeholder="例如：东京、箱根"/></label><div className="form-row"><label>开始日期<input name="startDate" type="date" required defaultValue={current.startDate}/></label><label>结束日期<input name="endDate" type="date" required defaultValue={current.endDate}/></label></div><label>旅行节奏<select name="pace" defaultValue="normal"><option value="relaxed">轻松 · 每天约 3 个地点</option><option value="normal">适中 · 每天约 4 个地点</option><option value="intensive">充实 · 每天约 5–6 个地点</option></select></label><fieldset><legend>旅行兴趣（可多选）</legend><div className="interest-grid">{["历史文化","城市散步","自然风景","当地美食","购物","温泉","摄影","亲子"].map((item)=><label key={item}><input type="checkbox" name="interests" value={item} defaultChecked={["历史文化","当地美食"].includes(item)}/><span>{item}</span></label>)}</div></fieldset>{error&&<p className="form-error">{error}</p>}<div className="dialog-actions"><button type="button" onClick={onClose}>取消</button><button className="primary" type="submit"><Sparkles size={16}/>生成攻略框架</button></div></form></div>;
 }
 
-function OnlinePlaceCreator({ onCreate, submitLabel }: { onCreate:(place:Place)=>void; submitLabel:string }) {
+function OnlinePlaceCreator({ onCreate }: { onCreate:(place:Place)=>void }) {
   const [name, setName] = useState("");
-  const [duration, setDuration] = useState(60);
   const [candidates, setCandidates] = useState<InternetPlaceCandidate[]>([]);
-  const [selectedId, setSelectedId] = useState("");
   const [status, setStatus] = useState<"idle"|"loading"|"ready"|"error">("idle");
-  const [message, setMessage] = useState("输入名称后联网查找，日本境内的地址、区域、类型和地图位置会自动补全。");
-  const selected = candidates.find((candidate) => candidate.id === selectedId);
+  const [message, setMessage] = useState("输入名称后联网查找，点击结果即可直接添加（默认停留 60 分钟）。");
 
   async function lookup() {
     const query = name.trim();
     if (!query || status === "loading") return;
-    setStatus("loading"); setCandidates([]); setSelectedId(""); setMessage("正在从互联网查找真实地点…");
+    setStatus("loading"); setCandidates([]); setMessage("正在从互联网查找真实地点…");
     try {
       const results = await searchInternetPlaces(query);
       setCandidates(results);
-      setSelectedId(results[0]?.id ?? "");
       setStatus(results.length ? "ready" : "error");
-      setMessage(results.length ? `找到 ${results.length} 个结果，请确认正确地点。` : "没有找到结果，请在名称中加入城市或区域后重试，例如“福冈机场”。");
+      setMessage(results.length ? `找到 ${results.length} 个结果，点击任意一个即可添加。` : "没有找到结果，请在名称中加入城市或区域后重试，例如“福冈机场”。");
     } catch {
       setStatus("error");
       setMessage("暂时无法连接地点服务，请检查网络后重试。");
     }
   }
 
-  function create() {
-    if (!selected || !name.trim()) return;
-    onCreate(candidateToPlace(selected, name, duration));
-  }
-
   return <div className="quick-place-form online-place-creator">
-    <div className="online-input-row"><label>地点或餐厅名称<input value={name} onChange={(e)=>{setName(e.target.value);setCandidates([]);setSelectedId("");setStatus("idle");setMessage("输入名称后联网查找，日本境内的地址、区域、类型和地图位置会自动补全。");}} onKeyDown={(e)=>{if(e.key==="Enter"){e.preventDefault();void lookup();}}} placeholder="例如：福冈机场、浅草寺"/></label><button type="button" className="lookup-button" disabled={!name.trim()||status==="loading"} onClick={()=>void lookup()}><Search size={16}/>{status==="loading"?"查找中…":"联网查找"}</button></div>
-    <label className="duration-field">停留分钟<input type="number" inputMode="numeric" min="15" max="600" step="15" value={duration} onChange={(e)=>setDuration(Math.max(15,Number(e.target.value)||15))}/></label>
+    <div className="online-input-row"><label>地点或餐厅名称<input value={name} onChange={(e)=>{setName(e.target.value);setCandidates([]);setStatus("idle");setMessage("输入名称后联网查找，点击结果即可直接添加（默认停留 60 分钟）。");}} onKeyDown={(e)=>{if(e.key==="Enter"){e.preventDefault();void lookup();}}} placeholder="例如：福冈机场、浅草寺"/></label><button type="button" className="lookup-button" disabled={!name.trim()||status==="loading"} onClick={()=>void lookup()}><Search size={16}/>{status==="loading"?"查找中…":"联网查找"}</button></div>
     <p className={`lookup-message ${status}`}>{message}</p>
-    {candidates.length>0&&<div className="place-candidates" role="radiogroup" aria-label="互联网地点搜索结果">{candidates.map((candidate)=><button type="button" role="radio" aria-checked={selectedId===candidate.id} className={selectedId===candidate.id?"selected":""} key={candidate.id} onClick={()=>setSelectedId(candidate.id)}><span className="candidate-emoji">{candidate.emoji}</span><span><strong>{candidate.name}</strong><small>{candidate.categoryLabel} · {candidate.area}</small><em>{candidate.address}</em></span></button>)}</div>}
-    {selected&&<div className="internet-summary"><span>已自动获取</span><strong>{selected.categoryLabel} · {selected.area}</strong><small>{selected.openingHours?`营业时间：${selected.openingHours}`:"地址、坐标和 Google Maps 位置已获取"}</small></div>}
+    {candidates.length>0&&<div className="place-candidates" role="list" aria-label="互联网地点搜索结果">{candidates.map((candidate)=><button type="button" key={candidate.id} onClick={()=>onCreate(candidateToPlace(candidate, candidate.name, 60))}><span className="candidate-emoji">{candidate.emoji}</span><span><strong>{candidate.name}</strong><small>{candidate.categoryLabel} · {candidate.area}</small><em>{candidate.address}</em></span><span className="candidate-add"><Plus size={14}/>添加</span></button>)}</div>}
     <p className="osm-attribution">地点数据 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a></p>
-    <button type="button" className="quick-create-button" disabled={!selected} onClick={create}><Plus size={16}/>{submitLabel}</button>
   </div>;
 }
 
 function PlaceDialog({ onClose, onSubmit }: { onClose:()=>void; onSubmit:(place:Place)=>void }) {
-  return <div className="dialog-backdrop" onMouseDown={onClose}><div className="dialog" onMouseDown={(e)=>e.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">SEARCH ONLINE</p><h2>添加旅行地点</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div><p className="wizard-intro">只需输入地点名称和计划停留时间，其余资料将从互联网获取。</p><OnlinePlaceCreator onCreate={onSubmit} submitLabel="保存地点"/><div className="dialog-actions"><button type="button" onClick={onClose}>取消</button></div></div></div>;
+  return <div className="dialog-backdrop" onMouseDown={onClose}><div className="dialog" onMouseDown={(e)=>e.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">SEARCH ONLINE</p><h2>添加旅行地点</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div><p className="wizard-intro">输入名称后联网查找，点击结果即可直接添加。</p><OnlinePlaceCreator onCreate={onSubmit}/><div className="dialog-actions"><button type="button" onClick={onClose}>取消</button></div></div></div>;
 }
 
 function DiningDialog({ onClose, onSubmit }: { onClose:()=>void; onSubmit:(data:FormData)=>void }) { return <div className="dialog-backdrop" onMouseDown={onClose}><form className="dialog" action={onSubmit} onMouseDown={(e)=>e.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">NEW DINING PLACE</p><h2>添加美食</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div><label>餐厅名称<input name="name" required placeholder="例如：元祖博多明太重"/></label><div className="form-row"><label>区域<input name="area" placeholder="天神"/></label><label>用餐时段<select name="meal" defaultValue="午餐"><option>早餐</option><option>午餐</option><option>咖啡</option><option>晚餐</option></select></label></div><label>料理类型<input name="cuisine" placeholder="拉面、寿司、烧鸟…"/></label><label>必吃菜<input name="mustTry" placeholder="想点的招牌菜"/></label><div className="dialog-actions"><button type="button" onClick={onClose}>取消</button><button className="primary" type="submit">保存美食</button></div></form></div>; }
+
+function ShoppingDialog({ plans, defaultDayId, parentOptions, onClose, onSubmit }: { plans: DayPlan[]; defaultDayId?: string; parentOptions?: Array<{ id: string; name: string }>; onClose:()=>void; onSubmit:(data:FormData)=>void }) { return <div className="dialog-backdrop" onMouseDown={onClose}><form className="dialog" action={onSubmit} onMouseDown={(e)=>e.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">NEW SHOPPING ITEM</p><h2>添加购物</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div><label>类型<select name="todoKind" defaultValue="shopping"><option value="shopping">购物</option><option value="food">美食</option><option value="checkin">打卡点</option></select></label><label>名称<input name="name" required placeholder="例如：明太子伴手礼"/></label><div className="form-row"><label>分类<select name="category" defaultValue="other"><option value="souvenir">纪念品</option><option value="food">食品</option><option value="clothing">服饰</option><option value="electronics">电器</option><option value="cosmetics">药妆</option><option value="other">其他</option></select></label><label>预计价格（日元）<input name="estimatedPrice" type="number" inputMode="numeric" min="0" step="100" placeholder="1500"/></label></div><div className="form-row"><label>店铺<input name="storeName" placeholder="福太郎 本店"/></label><label>区域<input name="area" placeholder="博多"/></label></div><label>所属地点<select name="parentPlaceId" defaultValue=""><option value="">不指定（归入待办）</option>{(parentOptions ?? []).map((option)=><option key={option.id} value={option.id}>{option.name}</option>)}</select></label><div className="form-row"><label>安排到哪天<select name="dayId" defaultValue={defaultDayId ?? ""}><option value="">未安排</option>{plans.map((day, index)=><option key={day.id} value={day.id}>DAY {index+1} · {day.date}</option>)}</select></label><label>时间<input name="time" type="time"/></label></div><label>备注<input name="note" placeholder="冷藏保存，返程前再买"/></label><div className="dialog-actions"><button type="button" onClick={onClose}>取消</button><button className="primary" type="submit">保存物品</button></div></form></div>; }
+
+function CardEditor({ day, plans, places, shopping, cardKey, onClose, onDelete, onDuplicate, onMoveToDay, onUpdateShopping, onUpdateStop }: { day: DayPlan; plans: DayPlan[]; places: Place[]; shopping: ShoppingItem[]; cardKey: string; onClose:()=>void; onDelete:(key:string)=>void; onDuplicate:(key:string)=>void; onMoveToDay:(key:string,toDayId:string)=>void; onUpdateShopping:(id:string,patch:Partial<ShoppingItem>)=>void; onUpdateStop:(placeId:string,patch:Partial<PlannedStop>)=>void }) {
+  const isStop = cardKey.startsWith("stop:");
+  const placeId = isStop ? cardKey.slice(5) : "";
+  const stop = day.stops.find((item) => item.placeId === placeId);
+  const place = places.find((item) => item.id === placeId);
+  const item = shopping.find((entry) => entry.id === cardKey.slice(5));
+  const otherDays = plans.filter((entry) => entry.id !== day.id);
+  const parentChoices = day.stops.map((entry) => places.find((candidate) => candidate.id === entry.placeId)).filter((candidate): candidate is Place => Boolean(candidate) && candidate!.id !== placeId && candidate!.kind !== "food" && candidate!.kind !== "cafe").map((candidate) => ({ id: candidate.id, name: candidate.name }));
+  return <div className="dialog-backdrop" onMouseDown={onClose}><div className="dialog card-editor" onMouseDown={(event)=>event.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">CARD · {day.date}</p><h2>{isStop ? place?.name ?? "地点" : item?.name ?? "购物卡片"}</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div>
+    {isStop ? (stop ? <><div className="form-row"><label>到达时间<input type="time" value={stop.time} onChange={(event)=>onUpdateStop(placeId,{ time: event.target.value })}/></label><label>状态<select value={stopStatus(stop)} onChange={(event)=>onUpdateStop(placeId,{ status: event.target.value as StopStatus })}><option value="planned">未完成</option><option value="visited">已到访</option><option value="skipped">已跳过</option></select></label></div>{place&&<p className="card-meta">{place.area} · 停留 {place.duration} 分钟{place.reservation?` · ${place.reservation}`:""}</p>}</> : <p className="card-meta">该地点已不在这一天。</p>)
+    : (item ? <><label>类型<select value={item.todoKind ?? "shopping"} onChange={(event)=>onUpdateShopping(item.id,{ todoKind: ((): "shopping" | "food" | "checkin" => { const value = event.target.value; return value === "checkin" || value === "food" ? value : "shopping"; })() })}><option value="shopping">购物</option><option value="food">美食</option><option value="checkin">打卡点</option></select></label><label>名称<input value={item.name} onChange={(event)=>onUpdateShopping(item.id,{ name: event.target.value })}/></label><div className="form-row"><label>时间<input type="time" value={item.time ?? ""} onChange={(event)=>onUpdateShopping(item.id,{ time: event.target.value || undefined })}/></label><label>预计价格（日元）<input type="number" inputMode="numeric" min="0" step="100" value={item.estimatedPrice ?? ""} onChange={(event)=>onUpdateShopping(item.id,{ estimatedPrice: event.target.value ? Number(event.target.value) : undefined })}/></label></div><label>备注<input value={item.note ?? ""} onChange={(event)=>onUpdateShopping(item.id,{ note: event.target.value || undefined })}/></label></> : <p className="card-meta">该卡片已不存在。</p>)}
+    <label>所属地点<select value={isStop ? (stop?.parentPlaceId ?? "") : (item?.parentPlaceId ?? "")} onChange={(event)=>{ const value = event.target.value || undefined; if (isStop) onUpdateStop(placeId, { parentPlaceId: value }); else if (item) onUpdateShopping(item.id, { parentPlaceId: value }); }}><option value="">不指定（归入待办）</option>{parentChoices.map((choice)=><option key={choice.id} value={choice.id}>{choice.name}</option>)}</select></label>
+    {otherDays.length > 0 && <label>移到其他天<select value="" onChange={(event)=>{ if (event.target.value) onMoveToDay(cardKey, event.target.value); }}><option value="">选择目标日期…</option>{otherDays.map((entry)=><option key={entry.id} value={entry.id}>DAY {plans.findIndex((plan)=>plan.id===entry.id)+1} · {entry.title}</option>)}</select></label>}
+    <div className="dialog-actions card-editor-actions">{!isStop&&<button type="button" onClick={()=>onDuplicate(cardKey)}>复制</button>}<button type="button" className="danger" onClick={()=>onDelete(cardKey)}><Trash2 size={15}/>删除</button><button type="button" className="primary" onClick={onClose}>完成</button></div>
+  </div></div>;
+}

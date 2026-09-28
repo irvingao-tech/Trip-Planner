@@ -33,10 +33,16 @@ export interface TimelineItem {
 
 export type TravelPace = "relaxed" | "normal" | "intensive";
 
+export type StopStatus = "planned" | "visited" | "skipped";
+
 export interface PlannedStop {
   placeId: string;
   time: string;
+  /** @deprecated Use `status` instead. Kept for reading legacy localStorage data. */
   visited?: boolean;
+  status?: StopStatus;
+  /** When set, this stop renders as a todo nested under the given place card. */
+  parentPlaceId?: string;
 }
 
 export interface DayPlan {
@@ -47,6 +53,8 @@ export interface DayPlan {
   endTime: string;
   pace: TravelPace;
   stops: PlannedStop[];
+  /** Explicit card order for the day: "stop:<placeId>" | "shop:<shoppingId>". */
+  order?: string[];
 }
 
 export interface TripProfile {
@@ -58,3 +66,25 @@ export interface TripProfile {
   pace: TravelPace;
   interests: string[];
 }
+
+export type ShoppingCategory = "souvenir" | "clothing" | "electronics" | "food" | "cosmetics" | "other";
+
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  category?: ShoppingCategory;
+  storeName?: string;
+  area?: string;
+  estimatedPrice?: number;
+  currency?: string;
+  purchased: boolean;
+  dayId?: string;
+  time?: string;
+  note?: string;
+  /** When set, this item renders as a todo nested under the given place card. */
+  parentPlaceId?: string;
+  /** Todo type for the nested checklist. Defaults to shopping. */
+  todoKind?: "shopping" | "food" | "checkin";
+}
+
+export type TravelMode = "walk" | "transit" | "drive";
