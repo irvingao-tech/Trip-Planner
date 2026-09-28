@@ -1,0 +1,21 @@
+services:
+  web:
+    build: .
+    image: japan-trip-app:latest
+    container_name: japan-trip-web
+    restart: unless-stopped
+    expose:
+      - "80"
+    # 如需局域网直接访问，取消下面两行注释（浏览器打开 http://NAS_IP:8080）
+    # ports:
+    #   - "8080:80"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: japan-trip-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - web

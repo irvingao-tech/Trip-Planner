@@ -48,3 +48,8 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## 自托管（NAS / Docker）
+
+支持用 Docker 部署到自有 NAS（如绿联 UGOS），并通过 Cloudflare Tunnel 提供外网 HTTPS。
+详见 [`deploy/README.md`](deploy/README.md)。
