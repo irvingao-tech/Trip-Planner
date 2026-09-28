@@ -83,6 +83,12 @@ export function TripApp() {
   const activePlan = plans.find((day) => day.id === activeDayId) ?? plans[0];
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production") return;
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }, []);
+
+  useEffect(() => {
     const storedUsers = readJson<UserProfile[]>(usersStorageKey);
     let loadedUsers: UserProfile[] = Array.isArray(storedUsers) ? storedUsers : [];
     if (loadedUsers.length === 0) {
