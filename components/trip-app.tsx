@@ -22,6 +22,30 @@ const plansStorageKey = "japan-trip-demo-plans-v1";
 const tripStorageKey = "japan-trip-demo-profile-v1";
 const shoppingStorageKey = "japan-trip-demo-shopping-v1";
 
+const usersStorageKey = "japan-trip-users-v1";
+const activeUserStorageKey = "japan-trip-active-user-v1";
+const userDataKey = (id: string) => `japan-trip-data-v1::${id}`;
+
+type UserProfile = { id: string; name: string; createdAt: string };
+type TripData = { places: Place[]; plans: DayPlan[]; trip: TripProfile; shopping: ShoppingItem[] };
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function initialTripData(): TripData {
+  return { places: initialPlaces, plans: initialDayPlans, trip: initialTrip, shopping: initialShopping };
+}
+
+function cloneTripData(data: TripData): TripData {
+  return JSON.parse(JSON.stringify(data)) as TripData;
+}
+
 type Todo = { key: string; refId: string; kind: "stop" | "shopping" | "food" | "checkin"; label: string; done: boolean; meta?: string };
 
 function buildDayPlans(profile: TripProfile): DayPlan[] {
@@ -53,41 +77,109 @@ export function TripApp() {
   const [showTodayPlace, setShowTodayPlace] = useState(false);
   const [editingCard, setEditingCard] = useState<{ dayId: string; key: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [activeUserId, setActiveUserId] = useState("");
   const activePlan = plans.find((day) => day.id === activeDayId) ?? plans[0];
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
-    const savedPlans = window.localStorage.getItem(plansStorageKey);
-    const savedTrip = window.localStorage.getItem(tripStorageKey);
-    const savedShopping = window.localStorage.getItem(shoppingStorageKey);
+    const storedUsers = readJson<UserProfile[]>(usersStorageKey);
+    let loadedUsers: UserProfile[] = Array.isArray(storedUsers) ? storedUsers : [];
+    if (loadedUsers.length === 0) {
+      const id = crypto.randomUUID();
+      const migrated: TripData = {
+        places: readJson<Place[]>(storageKey) ?? initialPlaces,
+        plans: readJson<DayPlan[]>(plansStorageKey) ?? initialDayPlans,
+        trip: readJson<TripProfile>(tripStorageKey) ?? initialTrip,
+        shopping: readJson<ShoppingItem[]>(shoppingStorageKey) ?? initialShopping,
+      };
+      loadedUsers = [{ id, name: "我的旅程", createdAt: new Date().toISOString() }];
+      window.localStorage.setItem(userDataKey(id), JSON.stringify(migrated));
+      window.localStorage.setItem(usersStorageKey, JSON.stringify(loadedUsers));
+      window.localStorage.setItem(activeUserStorageKey, id);
+    }
+    const savedActive = window.localStorage.getItem(activeUserStorageKey);
+    const activeId = loadedUsers.some((user) => user.id === savedActive) ? (savedActive as string) : loadedUsers[0].id;
+    const data = readJson<TripData>(userDataKey(activeId)) ?? cloneTripData(initialTripData());
     queueMicrotask(() => {
-      if (saved) setPlaces(JSON.parse(saved) as Place[]);
-      if (savedPlans) setPlans(JSON.parse(savedPlans) as DayPlan[]);
-      if (savedTrip) setTrip(JSON.parse(savedTrip) as TripProfile);
-      if (savedShopping) setShopping(JSON.parse(savedShopping) as ShoppingItem[]);
+      setUsers(loadedUsers);
+      setActiveUserId(activeId);
+      setPlaces(data.places);
+      setPlans(data.plans);
+      setTrip(data.trip);
+      setShopping(data.shopping);
+      setActiveDayId(data.plans[0]?.id ?? "");
       setHydrated(true);
     });
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(storageKey, JSON.stringify(places));
-  }, [places, hydrated]);
+    if (!hydrated || !activeUserId) return;
+    window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify({ places, plans, trip, shopping }));
+  }, [places, plans, trip, shopping, hydrated, activeUserId]);
 
   useEffect(() => {
     if (!hydrated) return;
-    window.localStorage.setItem(plansStorageKey, JSON.stringify(plans));
-  }, [plans, hydrated]);
+    window.localStorage.setItem(usersStorageKey, JSON.stringify(users));
+  }, [users, hydrated]);
 
   useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(tripStorageKey, JSON.stringify(trip));
-  }, [trip, hydrated]);
+    if (!hydrated || !activeUserId) return;
+    window.localStorage.setItem(activeUserStorageKey, activeUserId);
+  }, [activeUserId, hydrated]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    window.localStorage.setItem(shoppingStorageKey, JSON.stringify(shopping));
-  }, [shopping, hydrated]);
+  function persistActiveUser() {
+    if (!activeUserId) return;
+    window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify({ places, plans, trip, shopping }));
+  }
+
+  function loadTripData(data: TripData) {
+    setPlaces(data.places);
+    setPlans(data.plans);
+    setTrip(data.trip);
+    setShopping(data.shopping);
+    setActiveDayId(data.plans[0]?.id ?? "");
+  }
+
+  function switchUser(id: string) {
+    if (!id || id === activeUserId) return;
+    persistActiveUser();
+    const data = readJson<TripData>(userDataKey(id)) ?? cloneTripData(initialTripData());
+    setActiveUserId(id);
+    loadTripData(data);
+  }
+
+  function createUser() {
+    const name = window.prompt("新用户名称", "新用户");
+    if (!name || !name.trim()) return;
+    persistActiveUser();
+    const id = crypto.randomUUID();
+    const data = cloneTripData(initialTripData());
+    window.localStorage.setItem(userDataKey(id), JSON.stringify(data));
+    setUsers((current) => [...current, { id, name: name.trim(), createdAt: new Date().toISOString() }]);
+    setActiveUserId(id);
+    loadTripData(data);
+  }
+
+  function renameUser() {
+    const current = users.find((user) => user.id === activeUserId);
+    if (!current) return;
+    const name = window.prompt("重命名用户", current.name);
+    if (!name || !name.trim()) return;
+    setUsers((list) => list.map((user) => user.id === activeUserId ? { ...user, name: name.trim() } : user));
+  }
+
+  function removeUser() {
+    if (users.length <= 1) return;
+    const current = users.find((user) => user.id === activeUserId);
+    if (!current || !window.confirm(`删除用户「${current.name}」及其全部数据？`)) return;
+    window.localStorage.removeItem(userDataKey(activeUserId));
+    const remaining = users.filter((user) => user.id !== activeUserId);
+    const nextId = remaining[0].id;
+    const data = readJson<TripData>(userDataKey(nextId)) ?? cloneTripData(initialTripData());
+    setUsers(remaining);
+    setActiveUserId(nextId);
+    loadTripData(data);
+  }
 
   const filteredPlaces = useMemo(() => places.filter((place) => {
     const food = place.kind === "food" || place.kind === "cafe";
@@ -251,6 +343,34 @@ export function TripApp() {
     setShopping((current) => current.map((item) => item.id === id ? { ...item, purchased: !item.purchased } : item));
   }
 
+  function exportData() {
+    const payload = { version: 1, exportedAt: new Date().toISOString(), places, plans, trip, shopping };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `japan-trip-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result)) as { places?: Place[]; plans?: DayPlan[]; trip?: TripProfile; shopping?: ShoppingItem[] };
+        if (Array.isArray(data.places)) setPlaces(data.places);
+        if (Array.isArray(data.plans)) setPlans(data.plans);
+        if (data.trip) setTrip(data.trip);
+        if (Array.isArray(data.shopping)) setShopping(data.shopping);
+        if (Array.isArray(data.plans) && data.plans[0]) setActiveDayId(data.plans[0].id);
+      } catch {
+        window.alert("导入失败：文件格式不正确");
+      }
+    };
+    reader.readAsText(file);
+  }
+
   function autoFillPlans() {
     const assigned = new Set(plans.flatMap((day) => day.stops.map((stop) => stop.placeId)));
     const candidates = [...places].filter((place) => !assigned.has(place.id)).sort((a, b) => {
@@ -283,7 +403,7 @@ export function TripApp() {
         {section === "plan" && <Plan trip={trip} places={places} plans={plans} onEdit={setEditingDayId} onAutoFill={autoFillPlans} onNew={() => setShowTripWizard(true)} />}
         {section === "map" && <MapView places={places} />}
         {section === "places" && <Places places={filteredPlaces} diningOnly={diningOnly} setDiningOnly={setDiningOnly} query={query} setQuery={setQuery} onAdd={() => setShowAdd(true)} onAddPlace={() => setShowAddPlace(true)} onAddToPlan={(placeId) => { const targetId=plans[0]?.id; if(!targetId)return; setPlans((current) => current.map((day, index) => index === 0 && !day.stops.some((stop) => stop.placeId === placeId) ? { ...day, stops: [...day.stops, { placeId, time: addMinutes(day.startTime, day.stops.length * 110) }] } : day)); setSection("plan"); setEditingDayId(targetId); }} />}
-        {section === "more" && <More />}
+        {section === "more" && <More users={users} activeUserId={activeUserId} onSwitchUser={switchUser} onNewUser={createUser} onRenameUser={renameUser} onDeleteUser={removeUser} onExport={exportData} onImport={importData} />}
       </main>
 
       <nav className="bottom-nav" aria-label="主导航">{nav.map((item) => <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><item.icon size={21}/><span>{item.label}</span></button>)}</nav>
@@ -528,7 +648,13 @@ function MapView({ places }: { places: Place[] }) {
   const externalUrl = selected?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   return <section className="google-map-layout"><div className="map-place-list"><div className="map-list-head"><p className="eyebrow">GOOGLE MAPS</p><h2>旅程地点</h2><small>选择地点以在地图中查看</small></div>{places.map((place,index)=><button key={place.id} className={place.id===selected?.id?"selected":""} onClick={()=>setSelectedId(place.id)}><span>{index+1}</span><div><strong>{place.name}</strong><small>{place.area} · {place.duration} 分钟</small></div><ChevronRight size={16}/></button>)}</div><div className="google-map-frame"><iframe key={embedUrl} title={`Google Maps — ${selected?.name ?? "福冈"}`} src={embedUrl} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><div className="map-detail"><div><p className="eyebrow">已选择</p><h3>{selected?.emoji} {selected?.name}</h3><p>{selected?.area} · 建议停留 {selected?.duration} 分钟</p></div><a href={externalUrl} target="_blank" rel="noreferrer">打开 Google Maps</a></div></div></section>;
 }
-function More() { return <section className="simple-page"><div className="more-grid"><button><span>🛍️</span><strong>购物清单</strong><small>2 项待购买</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div></section>; }
+function More({ users, activeUserId, onSwitchUser, onNewUser, onRenameUser, onDeleteUser, onExport, onImport }: { users: UserProfile[]; activeUserId: string; onSwitchUser: (id: string) => void; onNewUser: () => void; onRenameUser: () => void; onDeleteUser: () => void; onExport: () => void; onImport: (file: File) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  return <section className="simple-page">
+    <div className="user-panel"><div><p className="eyebrow">当前用户</p><h2>{users.find((user) => user.id === activeUserId)?.name ?? "未命名"}</h2><small>数据按用户分开保存；同一用户在同一浏览器保持一致。</small></div><div className="user-row"><select value={activeUserId} onChange={(event) => onSwitchUser(event.target.value)} aria-label="切换用户">{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={onNewUser}><Plus size={14}/>新建用户</button><button onClick={onRenameUser}><Pencil size={14}/>重命名</button><button onClick={onDeleteUser} disabled={users.length <= 1}><Trash2 size={14}/>删除</button></div></div>
+    <div className="more-grid"><button onClick={onExport}><span>📤</span><strong>导出数据</strong><small>备份为 JSON 文件</small></button><button onClick={() => fileRef.current?.click()}><span>📥</span><strong>导入数据</strong><small>从备份文件恢复</small></button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.target.value = ""; }} /><button><span>🛍️</span><strong>购物清单</strong><small>2 项待购买</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div>
+  </section>;
+}
 
 function paceLabel(pace: DayPlan["pace"]) {
   return pace === "relaxed" ? "轻松" : pace === "intensive" ? "充实" : "适中";
