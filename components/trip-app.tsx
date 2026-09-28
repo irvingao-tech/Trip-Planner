@@ -169,6 +169,13 @@ export function TripApp() {
     setUsers((list) => list.map((user) => user.id === activeUserId ? { ...user, name: name.trim() } : user));
   }
 
+  function resetToSeed() {
+    if (!window.confirm("用内置数据覆盖当前用户的数据？")) return;
+    const data = cloneTripData(initialTripData());
+    loadTripData(data);
+    if (activeUserId) window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify(data));
+  }
+
   function removeUser() {
     if (users.length <= 1) return;
     const current = users.find((user) => user.id === activeUserId);
@@ -404,7 +411,7 @@ export function TripApp() {
         {section === "plan" && <Plan trip={trip} places={places} plans={plans} onEdit={setEditingDayId} onAutoFill={autoFillPlans} onNew={() => setShowTripWizard(true)} />}
         {section === "map" && <MapView places={places} />}
         {section === "places" && <Places places={filteredPlaces} diningOnly={diningOnly} setDiningOnly={setDiningOnly} query={query} setQuery={setQuery} onAdd={() => setShowAdd(true)} onAddPlace={() => setShowAddPlace(true)} onAddToPlan={(placeId) => { const targetId=plans[0]?.id; if(!targetId)return; setPlans((current) => current.map((day, index) => index === 0 && !day.stops.some((stop) => stop.placeId === placeId) ? { ...day, stops: [...day.stops, { placeId, time: addMinutes(day.startTime, day.stops.length * 110) }] } : day)); setSection("plan"); setEditingDayId(targetId); }} />}
-        {section === "more" && <More users={users} activeUserId={activeUserId} onSwitchUser={switchUser} onNewUser={createUser} onRenameUser={renameUser} onDeleteUser={removeUser} onExport={exportData} onImport={importData} />}
+        {section === "more" && <More users={users} activeUserId={activeUserId} onSwitchUser={switchUser} onNewUser={createUser} onRenameUser={renameUser} onDeleteUser={removeUser} onReset={resetToSeed} onExport={exportData} onImport={importData} />}
       </main>
 
       <nav className="bottom-nav" aria-label="主导航">{nav.map((item) => <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><item.icon size={21}/><span>{item.label}</span></button>)}</nav>
@@ -649,10 +656,10 @@ function MapView({ places }: { places: Place[] }) {
   const externalUrl = selected?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
   return <section className="google-map-layout"><div className="map-place-list"><div className="map-list-head"><p className="eyebrow">GOOGLE MAPS</p><h2>旅程地点</h2><small>选择地点以在地图中查看</small></div>{places.map((place,index)=><button key={place.id} className={place.id===selected?.id?"selected":""} onClick={()=>setSelectedId(place.id)}><span>{index+1}</span><div><strong>{place.name}</strong><small>{place.area} · {place.duration} 分钟</small></div><ChevronRight size={16}/></button>)}</div><div className="google-map-frame"><iframe key={embedUrl} title={`Google Maps — ${selected?.name ?? "福冈"}`} src={embedUrl} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><div className="map-detail"><div><p className="eyebrow">已选择</p><h3>{selected?.emoji} {selected?.name}</h3><p>{selected?.area} · 建议停留 {selected?.duration} 分钟</p></div><a href={externalUrl} target="_blank" rel="noreferrer">打开 Google Maps</a></div></div></section>;
 }
-function More({ users, activeUserId, onSwitchUser, onNewUser, onRenameUser, onDeleteUser, onExport, onImport }: { users: UserProfile[]; activeUserId: string; onSwitchUser: (id: string) => void; onNewUser: () => void; onRenameUser: () => void; onDeleteUser: () => void; onExport: () => void; onImport: (file: File) => void }) {
+function More({ users, activeUserId, onSwitchUser, onNewUser, onRenameUser, onDeleteUser, onReset, onExport, onImport }: { users: UserProfile[]; activeUserId: string; onSwitchUser: (id: string) => void; onNewUser: () => void; onRenameUser: () => void; onDeleteUser: () => void; onReset: () => void; onExport: () => void; onImport: (file: File) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return <section className="simple-page">
-    <div className="user-panel"><div><p className="eyebrow">当前用户</p><h2>{users.find((user) => user.id === activeUserId)?.name ?? "未命名"}</h2><small>数据按用户分开保存；同一用户在同一浏览器保持一致。</small></div><div className="user-row"><select value={activeUserId} onChange={(event) => onSwitchUser(event.target.value)} aria-label="切换用户">{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={onNewUser}><Plus size={14}/>新建用户</button><button onClick={onRenameUser}><Pencil size={14}/>重命名</button><button onClick={onDeleteUser} disabled={users.length <= 1}><Trash2 size={14}/>删除</button></div></div>
+    <div className="user-panel"><div><p className="eyebrow">当前用户</p><h2>{users.find((user) => user.id === activeUserId)?.name ?? "未命名"}</h2><small>数据按用户分开保存；同一用户在同一浏览器保持一致。</small></div><div className="user-row"><select value={activeUserId} onChange={(event) => onSwitchUser(event.target.value)} aria-label="切换用户">{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={onNewUser}><Plus size={14}/>新建用户</button><button onClick={onRenameUser}><Pencil size={14}/>重命名</button><button onClick={onReset}><Sparkles size={14}/>重置为内置数据</button><button onClick={onDeleteUser} disabled={users.length <= 1}><Trash2 size={14}/>删除</button></div></div>
     <div className="more-grid"><button onClick={onExport}><span>📤</span><strong>导出数据</strong><small>备份为 JSON 文件</small></button><button onClick={() => fileRef.current?.click()}><span>📥</span><strong>导入数据</strong><small>从备份文件恢复</small></button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.target.value = ""; }} /><button><span>🛍️</span><strong>购物清单</strong><small>2 项待购买</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div>
   </section>;
 }
