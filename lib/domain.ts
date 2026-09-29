@@ -1,4 +1,4 @@
-export type AppSection = "today" | "plan" | "map" | "places" | "more";
+export type AppSection = "today" | "map" | "places" | "more";
 export type PlaceKind = "sight" | "food" | "cafe" | "shopping";
 
 export interface Place {
