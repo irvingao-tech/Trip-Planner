@@ -123,7 +123,7 @@ export default function RouteMap({ points }: { points: RouteMapPoint[] }) {
 
     if (current.length >= 2) {
       const curve = buildCurve(current);
-      L.polyline(curve.map((sample) => [sample.lat, sample.lng]), { color: LINE_COLOR, weight: 5, opacity: 0.9, lineCap: "round", lineJoin: "round" }).addTo(layer);
+      L.polyline(curve.map((sample) => [sample.lat, sample.lng]), { color: LINE_COLOR, weight: 5, opacity: 0.9, lineCap: "round", lineJoin: "round", dashArray: "1 12" }).addTo(layer);
       arrowIndexes(curve, current).forEach((index) => {
         const from = curve[index];
         const to = curve[Math.min(index + 1, curve.length - 1)];
