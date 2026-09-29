@@ -491,7 +491,7 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
   const [activeLegIndex, setActiveLegIndex] = useState<number | null>(null);
   const [mapZoom, setMapZoom] = useState(15);
   const listRef = useRef<HTMLDivElement>(null);
-  const [routeResult, setRouteResult] = useState<{ key: string; routes: Partial<Record<TravelMode, DayRoute>> } | null>(null);
+  const [routeCache, setRouteCache] = useState<Record<string, DayRoute>>({});
 
   const checkedStops = useMemo(() => {
     if (!plan || checkedIds.length < 2) return [];
@@ -503,21 +503,29 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
   }, [plan, places, checkedIds]);
   const routePoints = checkedStops.length >= 2 ? checkedStops : points;
   const usesSelection = routePoints !== points;
-  const routeKey = routePoints.length >= 2 ? routePoints.map((point) => `${point.latitude},${point.longitude}`).join(";") : "";
+  const [settledPoints, setSettledPoints] = useState<RoutePoint[]>([]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSettledPoints(routePoints), 500);
+    return () => window.clearTimeout(timer);
+  }, [routePoints]);
+
+  const settledKey = settledPoints.length >= 2 ? settledPoints.map((point) => `${point.latitude},${point.longitude}`).join(";") : "";
 
   useEffect(() => {
-    if (!routeKey) return;
-    const controller = new AbortController();
+    if (!settledKey) return;
     const travelModes: TravelMode[] = ["walk", "transit", "drive"];
-    Promise.all(travelModes.map(async (travelMode) => [travelMode, await fetchDayRoute(routePoints, travelMode, controller.signal)] as const))
-      .then((entries) => { if (!controller.signal.aborted) setRouteResult({ key: routeKey, routes: Object.fromEntries(entries) as Partial<Record<TravelMode, DayRoute>> }); })
-      .catch(() => { if (!controller.signal.aborted) setRouteResult({ key: routeKey, routes: {} }); });
+    const pending = travelModes.filter((travelMode) => !routeCache[`${settledKey}|${travelMode}`]);
+    if (pending.length === 0) return;
+    const controller = new AbortController();
+    Promise.all(pending.map(async (travelMode) => [travelMode, await fetchDayRoute(settledPoints, travelMode, controller.signal)] as const))
+      .then((entries) => { if (!controller.signal.aborted) setRouteCache((current) => { const next = { ...current }; for (const [travelMode, result] of entries) next[`${settledKey}|${travelMode}`] = result; return next; }); })
+      .catch(() => {});
     return () => controller.abort();
-  }, [routeKey, routePoints]);
+  }, [settledKey, settledPoints, routeCache]);
 
-  const currentRoutes = routeResult && routeResult.key === routeKey ? routeResult.routes : null;
-  const route = currentRoutes?.[mode] ?? null;
-  const routeStatus: "idle" | "loading" | "ready" = !routeKey ? "idle" : !currentRoutes ? "loading" : "ready";
+  const currentRoutes: Partial<Record<TravelMode, DayRoute>> = { walk: routeCache[`${settledKey}|walk`], transit: routeCache[`${settledKey}|transit`], drive: routeCache[`${settledKey}|drive`] };
+  const route = currentRoutes[mode] ?? null;
+  const routeStatus: "idle" | "loading" | "ready" = !settledKey ? "idle" : !route ? "loading" : "ready";
   const legIndex = activeLegIndex != null && route && activeLegIndex < route.legs.length ? activeLegIndex : null;
 
   if (!plan) return <section className="blank-guide"><span>🗺️</span><p className="eyebrow">START FROM ZERO</p><h2>开始制作你的旅行攻略</h2><p>先新建一个攻略框架，再添加想去的地点与美食。</p><div><button className="primary" onClick={onQuickAddPlace}><Plus size={17}/>添加地点</button><button onClick={onDining}><Utensils size={17}/>添加美食</button></div></section>;
@@ -534,8 +542,8 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
     : activeShopping
       ? { label: [activeShopping.name, activeShopping.storeName, activeShopping.area].filter(Boolean).join(" ") }
       : routePoints[0] ?? { label: "Fukuoka, Japan" };
-  const legPoints = legIndex != null && routePoints[legIndex] && routePoints[legIndex + 1] ? [routePoints[legIndex], routePoints[legIndex + 1]] : null;
-  const mapUrl = legPoints ? buildRouteEmbedUrl(legPoints, mode, mapZoom) : mapMode === "route" ? buildRouteEmbedUrl(routePoints, mode, mapZoom) : buildPlaceEmbedUrl(activePoint, mapZoom);
+  const legPoints = legIndex != null && settledPoints[legIndex] && settledPoints[legIndex + 1] ? [settledPoints[legIndex], settledPoints[legIndex + 1]] : null;
+  const mapUrl = legPoints ? buildRouteEmbedUrl(legPoints, mode, mapZoom) : mapMode === "route" ? buildRouteEmbedUrl(settledPoints, mode, mapZoom) : buildPlaceEmbedUrl(activePoint, mapZoom);
   const externalUrl = buildGoogleMapsDirUrl(routePoints, mode);
   const externalPlaceUrl = activePlace?.mapUrl ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activePoint.label)}`;
   const selectEntry = (entry: TimelineEntry) => { setSelectedId(entryId(entry)); setMapMode("place"); };

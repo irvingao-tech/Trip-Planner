@@ -261,8 +261,7 @@ export function buildRouteEmbedUrl(points: RoutePoint[], mode: TravelMode, zoom?
     return buildPlaceEmbedUrl(located[0] ?? points[0] ?? { label: "Fukuoka, Japan" }, zoom);
   }
   const dirflg = mode === "walk" ? "w" : mode === "transit" ? "r" : "d";
-  const zoomParam = zoom ? `&z=${zoom}` : "";
   const saddr = `${located[0].latitude},${located[0].longitude}`;
   const daddr = located.slice(1).map((point) => `${point.latitude},${point.longitude}`).join("+to:");
-  return `https://maps.google.com/maps?saddr=${saddr}&daddr=${daddr}&dirflg=${dirflg}&hl=zh-CN&output=embed${zoomParam}`;
+  return `https://maps.google.com/maps?saddr=${saddr}&daddr=${daddr}&dirflg=${dirflg}&hl=zh-CN&output=embed`;
 }
