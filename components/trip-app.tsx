@@ -9,6 +9,9 @@ import { buildGoogleMapsDirUrl, buildPlaceEmbedUrl, buildRouteEmbedUrl, fetchDay
 import { addMinutes, moveStop, recalcStopTimes, stopLimitForPace, stopStatus, suggestStopOrder } from "@/lib/itinerary";
 import { candidateToPlace, searchInternetPlaces, type InternetPlaceCandidate } from "@/lib/place-search";
 import { matchParentPlaceId, mergeTimeline, shoppingForDay, shoppingTotals, stopCardKey, type TimelineEntry } from "@/lib/shopping";
+import dynamic from "next/dynamic";
+
+const RouteMap = dynamic(() => import("./route-map"), { ssr: false });
 
 const nav: Array<{ id: AppSection; label: string; icon: typeof Compass }> = [
   { id: "today", label: "今日", icon: Compass },
@@ -666,14 +669,7 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
   const dayIndex = day ? plans.findIndex((item) => item.id === day.id) + 1 : 1;
   const stops = (day?.stops ?? []).map((stop) => ({ stop, place: places.find((place) => place.id === stop.placeId) })).filter((entry): entry is { stop: PlannedStop; place: Place } => Boolean(entry.place));
   const activity = day?.activity ?? {};
-  const [mode, setMode] = useState<TravelMode>("walk");
-  const mapPoints = stops.map((entry) => ({ label: entry.place.name, latitude: entry.place.latitude, longitude: entry.place.longitude }));
-  const embedUrl = buildRouteEmbedUrl(mapPoints, mode);
-  const externalUrl = buildGoogleMapsDirUrl(mapPoints, mode);
-  const posterModes: Array<{ id: TravelMode; label: string; icon: typeof Footprints }> = [
-    { id: "walk", label: "步行", icon: Footprints },
-    { id: "transit", label: "公交", icon: TrainFront },
-  ];
+  const mapPoints = stops.filter((entry) => entry.place.latitude != null && entry.place.longitude != null).map((entry) => ({ label: entry.place.name, latitude: entry.place.latitude as number, longitude: entry.place.longitude as number }));
 
   async function exportPng() {
     if (!posterRef.current || busy) return;
@@ -701,9 +697,7 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
     </div>
     <div className="poster" ref={posterRef}>
       <div className="poster-head"><p className="poster-eyebrow">{trip.name}</p><h1>{day.title}</h1><p className="poster-date">{day.date} · DAY {dayIndex} · {trip.destination}</p></div>
-      <div className="poster-map-frame"><iframe key={embedUrl} title={`Google Maps — ${day.title}`} src={embedUrl} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/></div>
-      <div className="poster-map-tabs"><div className="mode-tabs">{posterModes.map((tab) => <button key={tab.id} type="button" className={mode === tab.id ? "active" : ""} onClick={() => setMode(tab.id)}><tab.icon size={14}/>{tab.label}</button>)}</div>{mapPoints.filter((point) => point.latitude != null).length > 1 && <a className="poster-map-link" href={externalUrl} target="_blank" rel="noreferrer"><Navigation size={14}/>在 Google Maps 打开</a>}</div>
-      <div className="poster-route">{stops.map((entry, index) => <div className="poster-node" key={entry.place.id}><span className="poster-index">{index + 1}</span><div className="poster-card"><span className="poster-emoji">{entry.place.emoji}</span><div><strong>{entry.place.name}</strong><small>{entry.stop.time} · {entry.place.area} · 停留 {entry.place.duration} 分钟</small></div></div></div>)}{stops.length === 0 && <p className="poster-empty">这一天还没有安排地点</p>}</div>
+      <div className="poster-map-box">{mapPoints.length > 0 ? <RouteMap points={mapPoints}/> : <div className="poster-empty">这一天还没有带坐标的地点</div>}</div>
       <div className="poster-stats"><div><small>步数</small><strong>{activity.steps ? activity.steps.toLocaleString() : "—"}</strong></div><div><small>距离</small><strong>{activity.distanceKm ? `${activity.distanceKm} km` : "—"}</strong></div><div><small>消耗</small><strong>{activity.calories ? `${activity.calories} kcal` : "—"}</strong></div></div>
       <p className="poster-foot">旅日手帖 · 路书 · 线路仅供参考</p>
     </div>
