@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/postcss": "latest",
     "html-to-image": "^1.11.13",
+    "leaflet": "^1.9.4",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",
@@ -20,6 +21,7 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
