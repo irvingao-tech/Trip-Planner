@@ -9,9 +9,6 @@ import { buildGoogleMapsDirUrl, buildPlaceEmbedUrl, buildRouteEmbedUrl, fetchDay
 import { addMinutes, moveStop, recalcStopTimes, stopLimitForPace, stopStatus, suggestStopOrder } from "@/lib/itinerary";
 import { candidateToPlace, searchInternetPlaces, type InternetPlaceCandidate } from "@/lib/place-search";
 import { matchParentPlaceId, mergeTimeline, shoppingForDay, shoppingTotals, stopCardKey, type TimelineEntry } from "@/lib/shopping";
-import dynamic from "next/dynamic";
-
-const RouteMap = dynamic(() => import("./route-map"), { ssr: false });
 
 const nav: Array<{ id: AppSection; label: string; icon: typeof Compass }> = [
   { id: "today", label: "今日", icon: Compass },
@@ -670,6 +667,7 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
   const stops = (day?.stops ?? []).map((stop) => ({ stop, place: places.find((place) => place.id === stop.placeId) })).filter((entry): entry is { stop: PlannedStop; place: Place } => Boolean(entry.place));
   const activity = day?.activity ?? {};
   const mapPoints = stops.filter((entry) => entry.place.latitude != null && entry.place.longitude != null).map((entry) => ({ label: entry.place.name, latitude: entry.place.latitude as number, longitude: entry.place.longitude as number }));
+  const embedUrl = buildRouteEmbedUrl(mapPoints, "walk");
 
   async function exportPng() {
     if (!posterRef.current || busy) return;
@@ -697,7 +695,7 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
     </div>
     <div className="poster" ref={posterRef}>
       <div className="poster-head"><p className="poster-eyebrow">{trip.name}</p><h1>{day.title}</h1><p className="poster-date">{day.date} · DAY {dayIndex} · {trip.destination}</p></div>
-      <div className="poster-map-box">{mapPoints.length > 0 ? <RouteMap points={mapPoints}/> : <div className="poster-empty">这一天还没有带坐标的地点</div>}</div>
+      <div className="poster-map-box">{mapPoints.length > 0 ? <iframe key={embedUrl} title={`Google Maps — ${day.title}`} src={embedUrl} loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/> : <div className="poster-empty">这一天还没有带坐标的地点</div>}</div>
       <div className="poster-stats"><div><small>步数</small><strong>{activity.steps ? activity.steps.toLocaleString() : "—"}</strong></div><div><small>距离</small><strong>{activity.distanceKm ? `${activity.distanceKm} km` : "—"}</strong></div><div><small>消耗</small><strong>{activity.calories ? `${activity.calories} kcal` : "—"}</strong></div></div>
       <p className="poster-foot">旅日手帖 · 路书 · 线路仅供参考</p>
     </div>
