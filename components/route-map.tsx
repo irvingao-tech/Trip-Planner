@@ -10,7 +10,7 @@ export interface RouteMapPoint {
   visited?: boolean;
 }
 
-const LINE_COLOR = "#38bdf8";
+const LINE_COLOR = "#e23b3b";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => {
