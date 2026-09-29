@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-09-28T08:42:42.880Z",
+  "exportedAt": "2026-09-29T08:49:24.970Z",
   "places": [
     {
       "id": "kushida",
@@ -223,6 +223,144 @@
       "website": "https://mitsui-shopping-park.com/lalaport/special/fukuoka/",
       "dataSource": "OpenStreetMap",
       "sourceUrl": "https://www.openstreetmap.org/way/1014591215"
+    },
+    {
+      "id": "ea0538b9-d099-4812-bccb-07c499ae35c5",
+      "name": "The B Hakata",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5870183%2C130.4230863",
+      "address": "The B Hakata, 筑紫通り, 博多駅南一丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0013, 日本",
+      "latitude": 33.5870183,
+      "longitude": 130.4230863,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/4163428890"
+    },
+    {
+      "id": "bf35e573-523f-4858-a39a-5034e061ee6c",
+      "name": "博多駅",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5900413%2C130.4199026",
+      "address": "博多駅, 博多駅中央街７号線, 博多駅前三丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0012, 日本",
+      "latitude": 33.5900413,
+      "longitude": 130.4199026,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/72653571"
+    },
+    {
+      "id": "5c03aad7-3773-43f8-bddf-230d0c1a8bec",
+      "name": "門司港",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "门司区 · 北九州市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.9448819%2C130.9612571",
+      "address": "門司港, 国道198号, 西海岸一丁目, 港町, 门司区, 北九州市, 福冈县, 801-0862, 日本",
+      "latitude": 33.9448819,
+      "longitude": 130.9612571,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/5943229344"
+    },
+    {
+      "id": "a1c4ec58-f219-47ec-8eb7-a75cdf9802fe",
+      "name": "小倉城",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "小仓北区 · 北九州市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.8844476%2C130.8742512",
+      "address": "小倉城, 長行田町線, 大門一丁目, 城内, 小仓北区, 北九州市, 福冈县, 802-0007, 日本",
+      "latitude": 33.8844476,
+      "longitude": 130.8742512,
+      "openingHours": "Mo-Su 09:00-17:00",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/153209407"
+    },
+    {
+      "id": "2abc36b1-7fa1-4ee1-bdb0-51d730a73bc0",
+      "name": "西公園",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "中央区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5976491%2C130.3754863",
+      "address": "西公園, 中央区, 福冈市, 福冈县, 日本",
+      "latitude": 33.5976491,
+      "longitude": 130.3754863,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/549372082"
+    },
+    {
+      "id": "4f957604-a519-4ed7-bf3f-46dfc8c392f2",
+      "name": "福岡駅",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "福岡町福岡 · 高岡市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=36.708318%2C136.931667",
+      "address": "福岡駅, 福岡停車場線, 福岡町福岡, 福岡, 高岡市, 富山縣, 939-0192, 日本",
+      "latitude": 36.708318,
+      "longitude": 136.931667,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/1058460023"
+    },
+    {
+      "id": "5477126d-d049-4e5f-a7c3-e305fd738914",
+      "name": "鹿児島中央",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "城西 · 鹿儿岛市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=31.5832165%2C130.5416464",
+      "address": "鹿児島中央, ベル通り, 中央町, 城西, 鹿儿岛市, 鹿儿岛县, 892-8677, 日本",
+      "latitude": 31.5832165,
+      "longitude": 130.5416464,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/8282913197"
+    },
+    {
+      "id": "947deea3-923c-43cb-b638-020197467be8",
+      "name": "熊本城",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "中央区 · 熊本市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=32.8052691%2C130.7054642",
+      "address": "熊本城, 中央区, 熊本市, 熊本县, 860-0002, 日本",
+      "latitude": 32.8052691,
+      "longitude": 130.7054642,
+      "website": "https://castle.kumamoto-guide.jp/",
+      "openingHours": "Mo-Su 09:00-17:00; Dec 29-Dec 31 off",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/375062710"
+    },
+    {
+      "id": "445d874e-af10-48e8-96b8-78fbd5b326ba",
+      "name": "The B Hakata",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5870183%2C130.4230863",
+      "address": "The B Hakata, 筑紫通り, 博多駅南一丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0013, 日本",
+      "latitude": 33.5870183,
+      "longitude": 130.4230863,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/4163428890"
     }
   ],
   "plans": [
@@ -237,17 +375,17 @@
         {
           "placeId": "00ee497d-8b16-4c9b-b6b0-812dc0899ac1",
           "time": "13:00",
-          "status": "planned"
+          "status": "visited"
         },
         {
           "placeId": "79a191ed-cd68-4967-8b77-8f0395781d65",
           "time": "13:30",
-          "status": "planned"
+          "status": "visited"
         },
         {
           "placeId": "20314acb-cf36-4293-aea6-93583a9c6b63",
           "time": "14:00",
-          "status": "planned"
+          "status": "visited"
         },
         {
           "placeId": "d89bfaf7-cb54-4400-89eb-48f2b7197fea",
@@ -258,6 +396,12 @@
           "placeId": "63af27dd-928b-4ff2-9a18-7b933f3b055f",
           "time": "16:20",
           "status": "planned"
+        },
+        {
+          "placeId": "445d874e-af10-48e8-96b8-78fbd5b326ba",
+          "time": "18:10",
+          "note": " LaLaport 步行到 竹下站",
+          "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
         }
       ],
       "order": [
@@ -269,25 +413,69 @@
         "shop:b631e38b-87ef-420e-b45a-327761437dab",
         "shop:579fa64c-0b47-487f-bd66-1c1a214d1b4c",
         "shop:227238cb-4ddb-442f-ae53-bae6aefeba51"
-      ]
+      ],
+      "activity": {
+        "steps": 20000,
+        "distanceKm": 20,
+        "calories": 30
+      }
     },
     {
       "id": "day-2",
       "date": "2026-10-20",
-      "title": "太宰府一日",
+      "title": "门司港 小仓",
       "startTime": "08:30",
       "endTime": "20:00",
       "pace": "relaxed",
-      "stops": []
+      "stops": [
+        {
+          "placeId": "ea0538b9-d099-4812-bccb-07c499ae35c5",
+          "time": "08:30"
+        },
+        {
+          "placeId": "bf35e573-523f-4858-a39a-5034e061ee6c",
+          "time": "09:20"
+        },
+        {
+          "placeId": "5c03aad7-3773-43f8-bddf-230d0c1a8bec",
+          "time": "10:20"
+        },
+        {
+          "placeId": "a1c4ec58-f219-47ec-8eb7-a75cdf9802fe",
+          "time": "14:00"
+        },
+        {
+          "placeId": "2abc36b1-7fa1-4ee1-bdb0-51d730a73bc0",
+          "time": "15:50",
+          "note": "博多站-西公园：6号 或 68号 巴士：在 “西公园” 站下车\n非固定票价，icoca 中门上车 前门下车各刷一下"
+        }
+      ],
+      "order": [
+        "shop:9138184e-8d14-49f2-afc5-07a35220c361",
+        "shop:e30b8223-3100-4382-a8f5-9e0b726399ad"
+      ]
     },
     {
       "id": "day-3",
       "date": "2026-10-21",
-      "title": "由布院与温泉",
+      "title": "鹿儿岛  樱岛火山",
       "startTime": "08:30",
       "endTime": "20:00",
       "pace": "normal",
-      "stops": []
+      "stops": [
+        {
+          "placeId": "4f957604-a519-4ed7-bf3f-46dfc8c392f2",
+          "time": "08:30"
+        },
+        {
+          "placeId": "5477126d-d049-4e5f-a7c3-e305fd738914",
+          "time": "10:20"
+        },
+        {
+          "placeId": "947deea3-923c-43cb-b638-020197467be8",
+          "time": "12:10"
+        }
+      ]
     },
     {
       "id": "day-4",
@@ -368,6 +556,24 @@
       "currency": "JPY",
       "todoKind": "food",
       "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
+    },
+    {
+      "id": "9138184e-8d14-49f2-afc5-07a35220c361",
+      "name": "蓝翼门司吊桥",
+      "purchased": false,
+      "dayId": "day-2",
+      "currency": "JPY",
+      "todoKind": "checkin",
+      "parentPlaceId": "5c03aad7-3773-43f8-bddf-230d0c1a8bec"
+    },
+    {
+      "id": "e30b8223-3100-4382-a8f5-9e0b726399ad",
+      "name": "旧门司税关",
+      "purchased": false,
+      "dayId": "day-2",
+      "currency": "JPY",
+      "todoKind": "checkin",
+      "parentPlaceId": "5c03aad7-3773-43f8-bddf-230d0c1a8bec"
     }
   ]
 }
