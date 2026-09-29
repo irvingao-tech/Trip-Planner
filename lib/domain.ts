@@ -43,6 +43,8 @@ export interface PlannedStop {
   status?: StopStatus;
   /** When set, this stop renders as a todo nested under the given place card. */
   parentPlaceId?: string;
+  /** Per-day note / reminders for this stop. */
+  note?: string;
 }
 
 export interface DayActivity {
