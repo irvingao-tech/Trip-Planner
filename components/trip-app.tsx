@@ -667,7 +667,7 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
   const stops = (day?.stops ?? []).map((stop) => ({ stop, place: places.find((place) => place.id === stop.placeId) })).filter((entry): entry is { stop: PlannedStop; place: Place } => Boolean(entry.place));
   const activity = day?.activity ?? {};
   const mapPoints = stops.filter((entry) => entry.place.latitude != null && entry.place.longitude != null).map((entry) => ({ label: entry.place.name, latitude: entry.place.latitude as number, longitude: entry.place.longitude as number }));
-  const embedUrl = buildRouteEmbedUrl(mapPoints, "walk");
+  const embedUrl = buildRouteEmbedUrl(mapPoints, "transit");
 
   async function exportPng() {
     if (!posterRef.current || busy) return;
