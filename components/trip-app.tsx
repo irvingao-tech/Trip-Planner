@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ArrowDown, ArrowUp, CalendarDays, Car, Check, ChevronDown, ChevronRight, Circle, CircleEllipsis, Compass, Footprints, GripVertical, Map, MapPin, Minus, Navigation, Pencil, Plus, Search, ShoppingBag, SkipForward, Sparkles, TrainFront, Trash2, Utensils, X } from "lucide-react";
+import { ArrowDown, ArrowUp, BookOpen, CalendarDays, Car, Check, ChevronDown, ChevronRight, Circle, CircleEllipsis, Compass, Download, Footprints, GripVertical, MapPin, Minus, Navigation, Pencil, Plus, Search, ShoppingBag, SkipForward, Sparkles, TrainFront, Trash2, Utensils, X } from "lucide-react";
 import { initialDayPlans, initialPlaces, initialShopping, initialTrip } from "@/lib/demo-data";
 import seedJson from "@/data/seed.json";
-import type { AppSection, DayPlan, Place, PlannedStop, ShoppingItem, StopStatus, TravelMode, TripProfile } from "@/lib/domain";
+import type { AppSection, DayActivity, DayPlan, Place, PlannedStop, ShoppingItem, StopStatus, TravelMode, TripProfile } from "@/lib/domain";
 import { buildGoogleMapsDirUrl, buildPlaceEmbedUrl, buildRouteEmbedUrl, fetchDayRoute, modeLabel, type DayRoute, type RoutePoint } from "@/lib/directions";
 import { addMinutes, moveStop, recalcStopTimes, stopLimitForPace, stopStatus, suggestStopOrder } from "@/lib/itinerary";
 import { candidateToPlace, searchInternetPlaces, type InternetPlaceCandidate } from "@/lib/place-search";
@@ -12,7 +12,7 @@ import { matchParentPlaceId, mergeTimeline, shoppingForDay, shoppingTotals, stop
 
 const nav: Array<{ id: AppSection; label: string; icon: typeof Compass }> = [
   { id: "today", label: "今日", icon: Compass },
-  { id: "map", label: "地图", icon: Map },
+  { id: "map", label: "路书", icon: BookOpen },
   { id: "places", label: "地点", icon: MapPin },
   { id: "more", label: "更多", icon: CircleEllipsis },
 ];
@@ -240,6 +240,10 @@ export function TripApp() {
     setEditingDayId(null);
   }
 
+  function updateDayActivity(dayId: string, patch: Partial<DayActivity>) {
+    setPlans((current) => current.map((day) => day.id === dayId ? { ...day, activity: { ...day.activity, ...patch } } : day));
+  }
+
   function setStopStatus(dayId: string, placeId: string, status: StopStatus) {
     setPlans((current) => current.map((day) => day.id === dayId ? { ...day, stops: day.stops.map((stop) => stop.placeId === placeId ? { ...stop, status } : stop) } : day));
   }
@@ -413,7 +417,7 @@ export function TripApp() {
         </header>
 
         {section === "today" && <Today places={places} plan={activePlan} plans={plans} activeDayId={activePlan?.id ?? ""} shopping={shopping} onSelectDay={setActiveDayId} onEditDay={setEditingDayId} onQuickAddPlace={() => setShowTodayPlace(true)} onDining={() => { setSection("places"); setDiningOnly(true); }} onAddShopping={() => setShowAddShopping(true)} onSetStatus={(placeId, status) => { if (activePlan) setStopStatus(activePlan.id, placeId, status); }} onTogglePurchased={togglePurchased} onReorder={(order) => { if (activePlan) setDayOrder(activePlan.id, order); }} onMoveCardToDay={(key, toDayId) => { if (activePlan) moveCardToDay(activePlan.id, key, toDayId); }} onAddCard={addShoppingCard} onAddPlace={quickAddStop} onAutoFill={autoFillPlans} onOpenCard={(key) => { if (activePlan) setEditingCard({ dayId: activePlan.id, key }); }} />}
-        {section === "map" && <MapView places={places} />}
+        {section === "map" && <PosterBoard trip={trip} plans={plans} activeDayId={activePlan?.id ?? ""} onSelectDay={setActiveDayId} places={places} onUpdateActivity={updateDayActivity} />}
         {section === "places" && <Places places={filteredPlaces} diningOnly={diningOnly} setDiningOnly={setDiningOnly} query={query} setQuery={setQuery} onAdd={() => setShowAdd(true)} onAddPlace={() => setShowAddPlace(true)} onAddToPlan={(placeId) => { const targetId=plans[0]?.id; if(!targetId)return; setPlans((current) => current.map((day, index) => index === 0 && !day.stops.some((stop) => stop.placeId === placeId) ? { ...day, stops: [...day.stops, { placeId, time: addMinutes(day.startTime, day.stops.length * 110) }] } : day)); setSection("today"); setEditingDayId(targetId); }} />}
         {section === "more" && <More users={users} activeUserId={activeUserId} onSwitchUser={switchUser} onNewUser={createUser} onRenameUser={renameUser} onDeleteUser={removeUser} onReset={resetToSeed} onExport={exportData} onImport={importData} />}
       </main>
@@ -648,16 +652,50 @@ function Places({ places, diningOnly, setDiningOnly, query, setQuery, onAdd, onA
   return <section className="places-page"><div className="toolbar"><div className="segmented"><button className={!diningOnly?"active":""} onClick={()=>setDiningOnly(false)}>全部地点</button><button className={diningOnly?"active":""} onClick={()=>setDiningOnly(true)}>美食</button></div><div className="toolbar-actions"><button onClick={onAddPlace}><Plus size={17}/>添加地点</button><button className="primary" onClick={onAdd}><Utensils size={17}/>添加美食</button></div></div><label className="search"><Search size={18}/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="搜索地点、区域或料理…"/></label><div className="place-grid">{places.map((place)=><article className="place-card" key={place.id}><div className="place-visual">{place.emoji}<span>{place.area}</span></div><div className="place-content"><div className="place-title"><div><h3>{place.name}</h3><p>{place.localName ?? place.cuisine ?? "旅行地点"}</p></div><button aria-label="更多">•••</button></div>{(place.kind==="food"||place.kind==="cafe")&&<div className="chips"><span>{place.meal}</span><span>{place.cuisine}</span><span className={place.reservation==="已预约"?"reserved":""}>{place.reservation}</span></div>}{place.mustTry&&<p className="must-try">必吃 · {place.mustTry}</p>}<div className="card-bottom"><span>{place.priority==="must"?"必去":"想去"} · {place.duration}分钟</span><button onClick={()=>onAddToPlan(place.id)}>加入行程</button></div></div></article>)}</div>{places.length===0&&<div className="blank-guide compact"><span>📌</span><h2>从收藏第一个地点开始</h2><p>添加景点、购物地点或美食，然后回到行程页进行智能分配。</p><div><button onClick={onAddPlace}>添加地点</button><button className="primary" onClick={onAdd}>添加美食</button></div></div>}</section>;
 }
 
-function MapView({ places }: { places: Place[] }) {
-  const [selectedId, setSelectedId] = useState(places[0]?.id ?? "");
-  const selected = places.find((place) => place.id === selectedId) ?? places[0];
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_EMBED_KEY;
-  const query = selected?.latitude != null && selected.longitude != null ? `${selected.latitude},${selected.longitude}` : selected ? `${selected.name}, ${selected.area}, Japan` : "Fukuoka, Japan";
-  const embedUrl = apiKey
-    ? `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(apiKey)}&q=${encodeURIComponent(query)}&language=zh-CN`
-    : `https://maps.google.com/maps?output=embed&hl=zh-CN&q=${encodeURIComponent(query)}`;
-  const externalUrl = selected?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-  return <section className="google-map-layout"><div className="map-place-list"><div className="map-list-head"><p className="eyebrow">GOOGLE MAPS</p><h2>旅程地点</h2><small>选择地点以在地图中查看</small></div>{places.map((place,index)=><button key={place.id} className={place.id===selected?.id?"selected":""} onClick={()=>setSelectedId(place.id)}><span>{index+1}</span><div><strong>{place.name}</strong><small>{place.area} · {place.duration} 分钟</small></div><ChevronRight size={16}/></button>)}</div><div className="google-map-frame"><iframe key={embedUrl} title={`Google Maps — ${selected?.name ?? "福冈"}`} src={embedUrl} loading="lazy" allowFullScreen referrerPolicy="strict-origin-when-cross-origin"/><div className="map-detail"><div><p className="eyebrow">已选择</p><h3>{selected?.emoji} {selected?.name}</h3><p>{selected?.area} · 建议停留 {selected?.duration} 分钟</p></div><a href={externalUrl} target="_blank" rel="noreferrer">打开 Google Maps</a></div></div></section>;
+function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateActivity }: { trip: TripProfile; plans: DayPlan[]; activeDayId: string; onSelectDay: (id: string) => void; places: Place[]; onUpdateActivity: (dayId: string, patch: Partial<DayActivity>) => void }) {
+  const posterRef = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState(false);
+  const day = plans.find((item) => item.id === activeDayId) ?? plans[0];
+  const dayIndex = day ? plans.findIndex((item) => item.id === day.id) + 1 : 1;
+  const stops = (day?.stops ?? []).map((stop) => ({ stop, place: places.find((place) => place.id === stop.placeId) })).filter((entry): entry is { stop: PlannedStop; place: Place } => Boolean(entry.place));
+  const activity = day?.activity ?? {};
+
+  async function exportPng() {
+    if (!posterRef.current || busy) return;
+    setBusy(true);
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(posterRef.current, { pixelRatio: 2, backgroundColor: "#f4efe6" });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `route-book-${day?.date ?? "day"}.png`;
+      link.click();
+    } catch {
+      window.alert("导出失败，请重试");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!day) return <section className="blank-guide"><span>📖</span><h2>还没有可生成的路书</h2><p>先在今日页添加地点与安排行程。</p></section>;
+
+  return <section className="poster-page">
+    <div className="poster-toolbar">
+      <div className="date-strip">{plans.map((item, index) => <button key={item.id} data-day-tab={item.id} className={item.id === day.id ? "selected" : ""} onClick={() => onSelectDay(item.id)}><small>DAY {index + 1}</small><b>{Number(item.date.slice(-2))}</b></button>)}</div>
+      <button className="primary" onClick={() => void exportPng()} disabled={busy}><Download size={16}/>{busy ? "导出中…" : "导出图片"}</button>
+    </div>
+    <div className="poster" ref={posterRef}>
+      <div className="poster-head"><p className="poster-eyebrow">{trip.name}</p><h1>{day.title}</h1><p className="poster-date">{day.date} · DAY {dayIndex} · {trip.destination}</p></div>
+      <div className="poster-route">{stops.map((entry, index) => <div className="poster-node" key={entry.place.id}><span className="poster-index">{index + 1}</span><div className="poster-card"><span className="poster-emoji">{entry.place.emoji}</span><div><strong>{entry.place.name}</strong><small>{entry.stop.time} · {entry.place.area} · 停留 {entry.place.duration} 分钟</small></div></div></div>)}{stops.length === 0 && <p className="poster-empty">这一天还没有安排地点</p>}</div>
+      <div className="poster-stats"><div><small>步数</small><strong>{activity.steps ? activity.steps.toLocaleString() : "—"}</strong></div><div><small>距离</small><strong>{activity.distanceKm ? `${activity.distanceKm} km` : "—"}</strong></div><div><small>消耗</small><strong>{activity.calories ? `${activity.calories} kcal` : "—"}</strong></div></div>
+      <p className="poster-foot">旅日手帖 · 路书 · 线路仅供参考</p>
+    </div>
+    <div className="poster-inputs">
+      <label>步数<input type="number" min="0" value={activity.steps ?? ""} onChange={(event) => onUpdateActivity(day.id, { steps: event.target.value ? Number(event.target.value) : undefined })}/></label>
+      <label>距离（km）<input type="number" min="0" step="0.1" value={activity.distanceKm ?? ""} onChange={(event) => onUpdateActivity(day.id, { distanceKm: event.target.value ? Number(event.target.value) : undefined })}/></label>
+      <label>消耗（kcal）<input type="number" min="0" value={activity.calories ?? ""} onChange={(event) => onUpdateActivity(day.id, { calories: event.target.value ? Number(event.target.value) : undefined })}/></label>
+    </div>
+  </section>;
 }
 function More({ users, activeUserId, onSwitchUser, onNewUser, onRenameUser, onDeleteUser, onReset, onExport, onImport }: { users: UserProfile[]; activeUserId: string; onSwitchUser: (id: string) => void; onNewUser: () => void; onRenameUser: () => void; onDeleteUser: () => void; onReset: () => void; onExport: () => void; onImport: (file: File) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);

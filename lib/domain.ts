@@ -45,6 +45,12 @@ export interface PlannedStop {
   parentPlaceId?: string;
 }
 
+export interface DayActivity {
+  steps?: number;
+  distanceKm?: number;
+  calories?: number;
+}
+
 export interface DayPlan {
   id: string;
   date: string;
@@ -55,6 +61,8 @@ export interface DayPlan {
   stops: PlannedStop[];
   /** Explicit card order for the day: "stop:<placeId>" | "shop:<shoppingId>". */
   order?: string[];
+  /** Manually recorded daily activity (steps / distance / calories). */
+  activity?: DayActivity;
 }
 
 export interface TripProfile {
