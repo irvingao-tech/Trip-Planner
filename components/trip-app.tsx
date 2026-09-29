@@ -513,7 +513,7 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
 
   useEffect(() => {
     if (!settledKey) return;
-    const travelModes: TravelMode[] = ["walk", "transit", "drive"];
+    const travelModes: TravelMode[] = ["walk", "transit"];
     const pending = travelModes.filter((travelMode) => !routeCache[`${settledKey}|${travelMode}`]);
     if (pending.length === 0) return;
     const controller = new AbortController();
@@ -612,7 +612,6 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
   const modeTabs: Array<{ id: TravelMode; label: string; icon: typeof Footprints }> = [
     { id: "walk", label: "步行", icon: Footprints },
     { id: "transit", label: "公交", icon: TrainFront },
-    { id: "drive", label: "驾车", icon: Car },
   ];
 
   return <div className="page-grid">
@@ -648,7 +647,7 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
         {routeStatus === "loading" && <p className="route-state">正在获取线路…</p>}
         {routeStatus !== "loading" && route && route.legs.length > 0 && <p className="route-state">{route.totalDurationMinutes} 分钟{route.totalDistanceMeters ? ` · ${formatDistance(route.totalDistanceMeters)}` : ""} · {sourceLabel}</p>}
         {routeStatus !== "loading" && (!route || route.legs.length === 0) && <p className="route-state">{points.length < 2 ? "需要至少两个带坐标的地点" : "暂无该模式线路，可在 Google Maps 查看"}</p>}
-        <ol className="route-legs">{route?.legs.map((leg, index) => <li key={leg.id} className={`route-leg${legIndex === index ? " active" : ""}${leg.steps && leg.steps.length > 0 ? " has-plan" : ""}`} role="button" tabIndex={0} onClick={() => { setActiveLegIndex(legIndex === index ? null : index); setMapMode("route"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActiveLegIndex(legIndex === index ? null : index); setMapMode("route"); } }}><div className="route-leg-head"><span className="route-index">{index + 1}</span><div><strong>{leg.fromLabel} → {leg.toLabel}</strong><small>{modeLabel[leg.mode]} · {leg.durationMinutes} 分钟{leg.distanceMeters ? ` · ${formatDistance(leg.distanceMeters)}` : ""}</small></div></div>{leg.steps && leg.steps.length > 0 && <div className="route-leg-plan"><ul className="route-steps">{leg.steps.map((step, stepIndex) => <li key={`${leg.id}-${stepIndex}`}><span className="step-icon">{leg.mode === "transit" && step.transitLine ? <TrainFront size={13}/> : leg.mode === "drive" ? <Car size={13}/> : <Footprints size={13}/>}</span><div><strong>{step.instruction}</strong><small>{[step.durationMinutes ? `${step.durationMinutes} 分钟` : null, step.distanceMeters ? formatDistance(step.distanceMeters) : null, step.departureTime && step.arrivalTime ? `${step.departureTime}–${step.arrivalTime}` : null, step.numStops ? `${step.numStops} 站` : null].filter(Boolean).join(" · ")}</small></div></li>)}</ul></div>}</li>)}</ol>
+        <ol className="route-legs">{route?.legs.map((leg, index) => <li key={leg.id} className={`route-leg${legIndex === index ? " active" : ""}${leg.mode !== "walk" && leg.steps && leg.steps.length > 0 ? " has-plan" : ""}`} role="button" tabIndex={0} onClick={() => { setActiveLegIndex(legIndex === index ? null : index); setMapMode("route"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActiveLegIndex(legIndex === index ? null : index); setMapMode("route"); } }}><div className="route-leg-head"><span className="route-index">{index + 1}</span><div><strong>{leg.fromLabel} → {leg.toLabel}</strong><small>{modeLabel[leg.mode]} · {leg.durationMinutes} 分钟{leg.distanceMeters ? ` · ${formatDistance(leg.distanceMeters)}` : ""}</small></div></div>{leg.mode !== "walk" && leg.steps && leg.steps.length > 0 && <div className="route-leg-plan"><ul className="route-steps">{leg.steps.map((step, stepIndex) => <li key={`${leg.id}-${stepIndex}`}><span className="step-icon">{leg.mode === "transit" && step.transitLine ? <TrainFront size={13}/> : leg.mode === "drive" ? <Car size={13}/> : <Footprints size={13}/>}</span><div><strong>{step.instruction}</strong><small>{[step.durationMinutes ? `${step.durationMinutes} 分钟` : null, step.distanceMeters ? formatDistance(step.distanceMeters) : null, step.departureTime && step.arrivalTime ? `${step.departureTime}–${step.arrivalTime}` : null, step.numStops ? `${step.numStops} 站` : null].filter(Boolean).join(" · ")}</small></div></li>)}</ul></div>}</li>)}</ol>
         {points.length > 1 && <a className="route-open" href={externalUrl} target="_blank" rel="noreferrer"><Navigation size={15}/>在 Google Maps 打开路线</a>}
         <p className="route-source">线路数据 {sourceLabel} · 仅供规划参考</p>
       </div>
@@ -674,7 +673,6 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
   const posterModes: Array<{ id: TravelMode; label: string; icon: typeof Footprints }> = [
     { id: "walk", label: "步行", icon: Footprints },
     { id: "transit", label: "公交", icon: TrainFront },
-    { id: "drive", label: "驾车", icon: Car },
   ];
 
   async function exportPng() {
