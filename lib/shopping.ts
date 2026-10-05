@@ -11,6 +11,22 @@ export function isStopCardKey(key: string) {
   return key.startsWith("stop:");
 }
 
+/**
+ * Move `dragKey` so it sits immediately before `beforeKey`, or at the end when
+ * `beforeKey` is null. The target is resolved against the other cards only, so
+ * a card that reorders live under the pointer cannot oscillate between two
+ * positions while it is being dragged.
+ */
+export function reorderKeys(keys: string[], dragKey: string, beforeKey: string | null): string[] {
+  if (!keys.includes(dragKey)) return keys;
+  const without = keys.filter((key) => key !== dragKey);
+  const target = beforeKey ? without.indexOf(beforeKey) : without.length;
+  const insertAt = target === -1 ? without.length : target;
+  const next = without.slice();
+  next.splice(insertAt, 0, dragKey);
+  return next;
+}
+
 export function shoppingForDay(items: ShoppingItem[], dayId: string): ShoppingItem[] {
   return items.filter((item) => item.dayId === dayId);
 }

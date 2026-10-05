@@ -8,7 +8,7 @@ import type { AppSection, DayActivity, DayPlan, Place, PlannedStop, ShoppingItem
 import { buildGoogleMapsDirUrl, buildPlaceEmbedUrl, buildRouteEmbedUrl, fetchDayRoute, modeLabel, type DayRoute, type RoutePoint } from "@/lib/directions";
 import { addMinutes, moveStop, recalcStopTimes, stopLimitForPace, stopStatus, suggestStopOrder } from "@/lib/itinerary";
 import { candidateToPlace, searchInternetPlaces, type InternetPlaceCandidate } from "@/lib/place-search";
-import { matchParentPlaceId, mergeTimeline, shoppingForDay, shoppingTotals, stopCardKey, type TimelineEntry } from "@/lib/shopping";
+import { matchParentPlaceId, mergeTimeline, reorderKeys, shoppingForDay, shoppingTotals, stopCardKey, type TimelineEntry } from "@/lib/shopping";
 import dynamic from "next/dynamic";
 
 const RouteMap = dynamic(() => import("./route-map"), { ssr: false });
@@ -556,25 +556,24 @@ function Today({ places, plan, plans, activeDayId, shopping, onSelectDay, onEdit
     event.currentTarget.setPointerCapture(event.pointerId);
     setDragKey(key);
   }
-  function cardDropIndex(clientY: number) {
-    const rows = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-card-row]") ?? []);
-    if (rows.length === 0) return 0;
-    const found = rows.findIndex((row) => { const rect = row.getBoundingClientRect(); return clientY < rect.top + rect.height / 2; });
-    return found === -1 ? rows.length - 1 : found;
-  }
   function dragCardOver(event: ReactPointerEvent<HTMLButtonElement>) {
     const element = document.elementFromPoint(event.clientX, event.clientY);
     const tab = element?.closest<HTMLElement>("[data-day-tab]");
     setDropDayId(tab?.dataset.dayTab ?? null);
     if (!dragKey) return;
+    // Compare the pointer against the other visible rows only. Including the
+    // dragged row makes its own live reordering flip the drop target back and
+    // forth, so the card appears to jump around.
+    const rows = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-card-row]") ?? []);
+    let beforeKey: string | null = null;
+    for (const row of rows) {
+      if (row.dataset.cardRow === dragKey) continue;
+      const rect = row.getBoundingClientRect();
+      if (event.clientY < rect.top + rect.height / 2) { beforeKey = row.dataset.cardRow ?? null; break; }
+    }
     const keys = entries.map((entry) => entry.key);
-    const from = keys.indexOf(dragKey);
-    if (from === -1) return;
-    const target = cardDropIndex(event.clientY);
-    if (target === from) return;
-    const next = keys.slice();
-    next.splice(from, 1);
-    next.splice(target, 0, dragKey);
+    const next = reorderKeys(keys, dragKey, beforeKey);
+    if (next.every((key, index) => key === keys[index])) return;
     onReorder(next);
   }
   function endCardDrag() {
