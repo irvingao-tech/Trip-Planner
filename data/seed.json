@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-09-29T08:49:24.970Z",
+  "exportedAt": "2026-10-05T08:37:41.029Z",
   "places": [
     {
       "id": "kushida",
@@ -361,6 +361,160 @@
       "longitude": 130.4230863,
       "dataSource": "OpenStreetMap",
       "sourceUrl": "https://www.openstreetmap.org/node/4163428890"
+    },
+    {
+      "id": "8a4bf727-90a2-4e61-84ff-67de9c6ed43d",
+      "name": "博多",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5896075%2C130.4185261",
+      "address": "博多, 博多站前通, 博多駅前三丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0011, 日本",
+      "latitude": 33.5896075,
+      "longitude": 130.4185261,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/10765652078"
+    },
+    {
+      "id": "928f687d-6ed2-4cfb-93c7-1316d759ab42",
+      "name": "櫛田神社",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.59307%2C130.4106837",
+      "address": "櫛田神社, 博多川端商店街, 中洲四丁目, 上川端町, 博多区, 福冈市, 福冈县, 810-0801, 日本",
+      "latitude": 33.59307,
+      "longitude": 130.4106837,
+      "openingHours": "Mo-Su 04:00-22:00",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/45779975"
+    },
+    {
+      "id": "7c3e2bfa-e2f6-45a1-902c-dfe1155c7da0",
+      "name": "大濠公園",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "中央区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5861214%2C130.3763612",
+      "address": "大濠公園, 2, 中央区, 福冈市, 福冈县, 810-0051, 日本",
+      "latitude": 33.5861214,
+      "longitude": 130.3763612,
+      "website": "https://www.ohorikouen.jp/",
+      "openingHours": "24/7",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/23344558"
+    },
+    {
+      "id": "cd26c988-21a2-4c36-8c5d-be03a297cd2c",
+      "name": "カルスト展望台",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "秋芳町秋吉 · 美祢市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=34.2349069%2C131.3058152",
+      "address": "カルスト展望台, 秋吉台公園線, 秋芳町秋吉, 美祢市, 山口县, 754-0511, 日本",
+      "latitude": 34.2349069,
+      "longitude": 131.3058152,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/934861196"
+    },
+    {
+      "id": "36912b1d-d30c-4dd3-b3c9-752ff283a798",
+      "name": "城山展望台",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "城西 · 鹿儿岛市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=31.5962647%2C130.5500869",
+      "address": "城山展望台, 城山公園トンネル, 城山町, 城西, 鹿儿岛市, 鹿儿岛县, 892-8677, 日本",
+      "latitude": 31.5962647,
+      "longitude": 130.5500869,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/589671404"
+    },
+    {
+      "id": "e9d934b4-7155-4db5-86c4-5cb0bcca1df1",
+      "name": "博多駅",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.5900413%2C130.4199026",
+      "address": "博多駅, 博多駅中央街７号線, 博多駅前三丁目, 博多駅中央街, 博多区, 福冈市, 福冈县, 812-0012, 日本",
+      "latitude": 33.5900413,
+      "longitude": 130.4199026,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/72653571"
+    },
+    {
+      "id": "24c12ee7-3857-4325-9080-1999ff29837e",
+      "name": "篠栗町",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "篠栗町",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.6239361%2C130.5261632",
+      "address": "篠栗町, 糟屋郡, 福冈县, 日本",
+      "latitude": 33.6239361,
+      "longitude": 130.5261632,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/relation/4008331"
+    },
+    {
+      "id": "06bbba30-b1ef-48d6-95de-df51aa85b91e",
+      "name": "加倉団地1号公園",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "志波姫横峰浦 · 栗原市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=38.7322882%2C141.0639554",
+      "address": "加倉団地1号公園, 志波姫横峰浦, 栗原市, 宫城县, 日本",
+      "latitude": 38.7322882,
+      "longitude": 141.0639554,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/668072503"
+    },
+    {
+      "id": "36493523-59cf-4b90-bcff-5dfd7bbad773",
+      "name": "城戸南蔵院前",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "大字篠栗 · 篠栗町",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.6181256%2C130.5718721",
+      "address": "城戸南蔵院前, 八木山バイパス, 大字篠栗, 篠栗町, 糟屋郡, 福冈县, 811-2405, 日本",
+      "latitude": 33.6181256,
+      "longitude": 130.5718721,
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/node/7736216886"
+    },
+    {
+      "id": "5d9e3db9-cb38-40bc-94eb-c3f4b078fa89",
+      "name": "福岡空港",
+      "kind": "sight",
+      "emoji": "📍",
+      "area": "博多区 · 福冈市",
+      "priority": "want",
+      "duration": 60,
+      "mapUrl": "https://www.google.com/maps/search/?api=1&query=33.586802%2C130.4473939",
+      "address": "福岡空港, 水城下臼井線, 月隈四丁目, 下月隈, 博多区, 福冈市, 福冈县, 816-0088, 日本",
+      "latitude": 33.586802,
+      "longitude": 130.4473939,
+      "website": "fuk-ab.co.jp",
+      "dataSource": "OpenStreetMap",
+      "sourceUrl": "https://www.openstreetmap.org/way/529445584"
     }
   ],
   "plans": [
@@ -374,33 +528,27 @@
       "stops": [
         {
           "placeId": "00ee497d-8b16-4c9b-b6b0-812dc0899ac1",
-          "time": "13:00",
-          "status": "visited"
+          "time": "13:31",
+          "status": "planned"
         },
         {
           "placeId": "79a191ed-cd68-4967-8b77-8f0395781d65",
-          "time": "13:30",
-          "status": "visited"
+          "time": "14:45",
+          "status": "planned"
         },
         {
           "placeId": "20314acb-cf36-4293-aea6-93583a9c6b63",
-          "time": "14:00",
-          "status": "visited"
-        },
-        {
-          "placeId": "d89bfaf7-cb54-4400-89eb-48f2b7197fea",
           "time": "15:00",
           "status": "planned"
         },
         {
-          "placeId": "63af27dd-928b-4ff2-9a18-7b933f3b055f",
-          "time": "16:20",
+          "placeId": "d89bfaf7-cb54-4400-89eb-48f2b7197fea",
+          "time": "15:36",
           "status": "planned"
         },
         {
           "placeId": "445d874e-af10-48e8-96b8-78fbd5b326ba",
-          "time": "18:10",
-          "note": " LaLaport 步行到 竹下站",
+          "time": "17:36",
           "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
         }
       ],
@@ -412,7 +560,8 @@
         "shop:e558d367-5e00-418c-b7c5-7afe76553da5",
         "shop:b631e38b-87ef-420e-b45a-327761437dab",
         "shop:579fa64c-0b47-487f-bd66-1c1a214d1b4c",
-        "shop:227238cb-4ddb-442f-ae53-bae6aefeba51"
+        "shop:227238cb-4ddb-442f-ae53-bae6aefeba51",
+        "stop:445d874e-af10-48e8-96b8-78fbd5b326ba"
       ],
       "activity": {
         "steps": 20000,
@@ -434,25 +583,24 @@
         },
         {
           "placeId": "bf35e573-523f-4858-a39a-5034e061ee6c",
-          "time": "09:20"
-        },
-        {
-          "placeId": "5c03aad7-3773-43f8-bddf-230d0c1a8bec",
-          "time": "10:20"
+          "time": "10:00"
         },
         {
           "placeId": "a1c4ec58-f219-47ec-8eb7-a75cdf9802fe",
-          "time": "14:00"
+          "time": "11:30"
         },
         {
-          "placeId": "2abc36b1-7fa1-4ee1-bdb0-51d730a73bc0",
-          "time": "15:50",
-          "note": "博多站-西公园：6号 或 68号 巴士：在 “西公园” 站下车\n非固定票价，icoca 中门上车 前门下车各刷一下"
+          "placeId": "5c03aad7-3773-43f8-bddf-230d0c1a8bec",
+          "time": "13:00"
         }
       ],
       "order": [
         "shop:9138184e-8d14-49f2-afc5-07a35220c361",
-        "shop:e30b8223-3100-4382-a8f5-9e0b726399ad"
+        "shop:e30b8223-3100-4382-a8f5-9e0b726399ad",
+        "stop:ea0538b9-d099-4812-bccb-07c499ae35c5",
+        "stop:bf35e573-523f-4858-a39a-5034e061ee6c",
+        "stop:a1c4ec58-f219-47ec-8eb7-a75cdf9802fe",
+        "stop:5c03aad7-3773-43f8-bddf-230d0c1a8bec"
       ]
     },
     {
@@ -472,7 +620,7 @@
           "time": "10:20"
         },
         {
-          "placeId": "947deea3-923c-43cb-b638-020197467be8",
+          "placeId": "36912b1d-d30c-4dd3-b3c9-752ff283a798",
           "time": "12:10"
         }
       ]
@@ -484,7 +632,40 @@
       "startTime": "09:00",
       "endTime": "20:00",
       "pace": "relaxed",
-      "stops": []
+      "stops": [
+        {
+          "placeId": "8a4bf727-90a2-4e61-84ff-67de9c6ed43d",
+          "time": "09:00",
+          "status": "planned"
+        },
+        {
+          "placeId": "928f687d-6ed2-4cfb-93c7-1316d759ab42",
+          "time": "10:30"
+        },
+        {
+          "placeId": "7c3e2bfa-e2f6-45a1-902c-dfe1155c7da0",
+          "time": "12:00"
+        },
+        {
+          "placeId": "2abc36b1-7fa1-4ee1-bdb0-51d730a73bc0",
+          "time": "13:30",
+          "note": "博多站-西公园：6号 或 68号 巴士：在 “西公园” 站下车\n非固定票价，icoca 中门上车 前门下车各刷一下"
+        },
+        {
+          "placeId": "63af27dd-928b-4ff2-9a18-7b933f3b055f",
+          "time": "15:00",
+          "status": "planned"
+        }
+      ],
+      "order": [
+        "stop:8a4bf727-90a2-4e61-84ff-67de9c6ed43d",
+        "stop:928f687d-6ed2-4cfb-93c7-1316d759ab42",
+        "stop:7c3e2bfa-e2f6-45a1-902c-dfe1155c7da0",
+        "stop:2abc36b1-7fa1-4ee1-bdb0-51d730a73bc0",
+        "stop:63af27dd-928b-4ff2-9a18-7b933f3b055f",
+        "shop:227238cb-4ddb-442f-ae53-bae6aefeba51",
+        "shop:579fa64c-0b47-487f-bd66-1c1a214d1b4c"
+      ]
     },
     {
       "id": "day-5",
@@ -493,7 +674,20 @@
       "startTime": "09:00",
       "endTime": "18:00",
       "pace": "normal",
-      "stops": []
+      "stops": [
+        {
+          "placeId": "e9d934b4-7155-4db5-86c4-5cb0bcca1df1",
+          "time": "09:00"
+        },
+        {
+          "placeId": "36493523-59cf-4b90-bcff-5dfd7bbad773",
+          "time": "10:50"
+        },
+        {
+          "placeId": "5d9e3db9-cb38-40bc-94eb-c3f4b078fa89",
+          "time": "12:40"
+        }
+      ]
     }
   ],
   "trip": {
@@ -543,7 +737,7 @@
       "id": "579fa64c-0b47-487f-bd66-1c1a214d1b4c",
       "name": "1：1高达",
       "purchased": false,
-      "dayId": "day-1",
+      "dayId": "day-4",
       "currency": "JPY",
       "todoKind": "checkin",
       "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
@@ -552,7 +746,7 @@
       "id": "227238cb-4ddb-442f-ae53-bae6aefeba51",
       "name": "Bakuro Meat",
       "purchased": false,
-      "dayId": "day-1",
+      "dayId": "day-4",
       "currency": "JPY",
       "todoKind": "food",
       "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
