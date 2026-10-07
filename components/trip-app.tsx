@@ -30,7 +30,8 @@ const activeUserStorageKey = "japan-trip-active-user-v1";
 const userDataKey = (id: string) => `japan-trip-data-v1::${id}`;
 
 type UserProfile = { id: string; name: string; createdAt: string };
-type TripData = { places: Place[]; plans: DayPlan[]; trip: TripProfile; shopping: ShoppingItem[] };
+type TodoItem = { id: string; text: string; done: boolean };
+type TripData = { places: Place[]; plans: DayPlan[]; trip: TripProfile; shopping: ShoppingItem[]; todos?: TodoItem[] };
 
 function readJson<T>(key: string): T | null {
   try {
@@ -82,6 +83,8 @@ export function TripApp() {
   const [hydrated, setHydrated] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [activeUserId, setActiveUserId] = useState("");
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [showTodos, setShowTodos] = useState(false);
   const activePlan = plans.find((day) => day.id === activeDayId) ?? plans[0];
 
   useEffect(() => {
@@ -116,6 +119,7 @@ export function TripApp() {
       setPlans(data.plans);
       setTrip(data.trip);
       setShopping(data.shopping);
+      setTodos(data.todos ?? []);
       setActiveDayId(data.plans[0]?.id ?? "");
       setHydrated(true);
     });
@@ -123,8 +127,8 @@ export function TripApp() {
 
   useEffect(() => {
     if (!hydrated || !activeUserId) return;
-    window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify({ places, plans, trip, shopping }));
-  }, [places, plans, trip, shopping, hydrated, activeUserId]);
+    window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify({ places, plans, trip, shopping, todos }));
+  }, [places, plans, trip, shopping, todos, hydrated, activeUserId]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -138,7 +142,7 @@ export function TripApp() {
 
   function persistActiveUser() {
     if (!activeUserId) return;
-    window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify({ places, plans, trip, shopping }));
+    window.localStorage.setItem(userDataKey(activeUserId), JSON.stringify({ places, plans, trip, shopping, todos }));
   }
 
   function loadTripData(data: TripData) {
@@ -146,6 +150,7 @@ export function TripApp() {
     setPlans(data.plans);
     setTrip(data.trip);
     setShopping(data.shopping);
+    setTodos(data.todos ?? []);
     setActiveDayId(data.plans[0]?.id ?? "");
   }
 
@@ -363,8 +368,20 @@ export function TripApp() {
     setShopping((current) => current.map((item) => item.id === id ? { ...item, purchased: !item.purchased } : item));
   }
 
+  function addTodo(text: string) {
+    setTodos((current) => [...current, { id: crypto.randomUUID(), text, done: false }]);
+  }
+
+  function toggleTodo(id: string) {
+    setTodos((current) => current.map((todo) => todo.id === id ? { ...todo, done: !todo.done } : todo));
+  }
+
+  function removeTodo(id: string) {
+    setTodos((current) => current.filter((todo) => todo.id !== id));
+  }
+
   function exportData() {
-    const payload = { version: 1, exportedAt: new Date().toISOString(), places, plans, trip, shopping };
+    const payload = { version: 1, exportedAt: new Date().toISOString(), places, plans, trip, shopping, todos };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -378,11 +395,12 @@ export function TripApp() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(String(reader.result)) as { places?: Place[]; plans?: DayPlan[]; trip?: TripProfile; shopping?: ShoppingItem[] };
+        const data = JSON.parse(String(reader.result)) as { places?: Place[]; plans?: DayPlan[]; trip?: TripProfile; shopping?: ShoppingItem[]; todos?: TodoItem[] };
         if (Array.isArray(data.places)) setPlaces(data.places);
         if (Array.isArray(data.plans)) setPlans(data.plans);
         if (data.trip) setTrip(data.trip);
         if (Array.isArray(data.shopping)) setShopping(data.shopping);
+        if (Array.isArray(data.todos)) setTodos(data.todos);
         if (Array.isArray(data.plans) && data.plans[0]) setActiveDayId(data.plans[0].id);
       } catch {
         window.alert("导入失败：文件格式不正确");
@@ -422,7 +440,7 @@ export function TripApp() {
         {section === "today" && <Today places={places} plan={activePlan} plans={plans} activeDayId={activePlan?.id ?? ""} shopping={shopping} onSelectDay={setActiveDayId} onEditDay={setEditingDayId} onQuickAddPlace={() => setShowTodayPlace(true)} onDining={() => { setSection("places"); setDiningOnly(true); }} onAddShopping={() => setShowAddShopping(true)} onSetStatus={(placeId, status) => { if (activePlan) setStopStatus(activePlan.id, placeId, status); }} onTogglePurchased={togglePurchased} onReorder={(order) => { if (activePlan) setDayOrder(activePlan.id, order); }} onMoveCardToDay={(key, toDayId) => { if (activePlan) moveCardToDay(activePlan.id, key, toDayId); }} onAddCard={addShoppingCard} onAddPlace={quickAddStop} onAutoFill={autoFillPlans} onOpenCard={(key) => { if (activePlan) setEditingCard({ dayId: activePlan.id, key }); }} />}
         {section === "map" && <PosterBoard trip={trip} plans={plans} activeDayId={activePlan?.id ?? ""} onSelectDay={setActiveDayId} places={places} onUpdateActivity={updateDayActivity} />}
         {section === "places" && <Places places={filteredPlaces} diningOnly={diningOnly} setDiningOnly={setDiningOnly} query={query} setQuery={setQuery} onAdd={() => setShowAdd(true)} onAddPlace={() => setShowAddPlace(true)} onAddToPlan={(placeId) => { const targetId=plans[0]?.id; if(!targetId)return; setPlans((current) => current.map((day, index) => index === 0 && !day.stops.some((stop) => stop.placeId === placeId) ? { ...day, stops: [...day.stops, { placeId, time: addMinutes(day.startTime, day.stops.length * 110) }] } : day)); setSection("today"); setEditingDayId(targetId); }} />}
-        {section === "more" && <More users={users} activeUserId={activeUserId} onSwitchUser={switchUser} onNewUser={createUser} onRenameUser={renameUser} onDeleteUser={removeUser} onReset={resetToSeed} onExport={exportData} onImport={importData} />}
+        {section === "more" && <More users={users} activeUserId={activeUserId} todoCount={todos.filter((todo) => !todo.done).length} onOpenTodos={() => setShowTodos(true)} onSwitchUser={switchUser} onNewUser={createUser} onRenameUser={renameUser} onDeleteUser={removeUser} onReset={resetToSeed} onExport={exportData} onImport={importData} />}
       </main>
 
       <nav className="bottom-nav" aria-label="主导航">{nav.map((item) => <button key={item.id} className={section === item.id ? "active" : ""} onClick={() => setSection(item.id)}><item.icon size={21}/><span>{item.label}</span></button>)}</nav>
@@ -431,6 +449,7 @@ export function TripApp() {
       {showTodayPlace && <PlaceDialog onClose={() => setShowTodayPlace(false)} onSubmit={quickAddStop} />}
       {showAddShopping && <ShoppingDialog plans={plans} defaultDayId={activeDayId} parentOptions={(activePlan?.stops ?? []).map((stop) => places.find((place) => place.id === stop.placeId)).filter((place): place is Place => Boolean(place)).map((place) => ({ id: place.id, name: place.name }))} onClose={() => setShowAddShopping(false)} onSubmit={addShopping} />}
       {showTripWizard && <TripWizard current={trip} onClose={() => setShowTripWizard(false)} onCreate={createTrip} />}
+      {showTodos && <TodoDialog todos={todos} onAdd={addTodo} onToggle={toggleTodo} onRemove={removeTodo} onClose={() => setShowTodos(false)} />}
       {editingDayId && <DayEditor day={plans.find((day) => day.id === editingDayId)!} places={places} onCreatePlace={(place) => setPlaces((current) => [...current, place])} onClose={() => setEditingDayId(null)} onSave={savePlan} />}
       {editingCard && <CardEditor day={plans.find((day) => day.id === editingCard.dayId)!} plans={plans} places={places} shopping={shopping} cardKey={editingCard.key} onClose={() => setEditingCard(null)} onDelete={(key) => { deleteCard(editingCard.dayId, key); setEditingCard(null); }} onDuplicate={duplicateCard} onMoveToDay={(key, toDayId) => { moveCardToDay(editingCard.dayId, key, toDayId); setEditingCard(null); }} onUpdateShopping={updateShopping} onUpdateStop={(placeId, patch) => updateStop(editingCard.dayId, placeId, patch)} />}
     </div>
@@ -708,11 +727,22 @@ function PosterBoard({ trip, plans, activeDayId, onSelectDay, places, onUpdateAc
     </div>
   </section>;
 }
-function More({ users, activeUserId, onSwitchUser, onNewUser, onRenameUser, onDeleteUser, onReset, onExport, onImport }: { users: UserProfile[]; activeUserId: string; onSwitchUser: (id: string) => void; onNewUser: () => void; onRenameUser: () => void; onDeleteUser: () => void; onReset: () => void; onExport: () => void; onImport: (file: File) => void }) {
+function TodoDialog({ todos, onAdd, onToggle, onRemove, onClose }: { todos: TodoItem[]; onAdd: (text: string) => void; onToggle: (id: string) => void; onRemove: (id: string) => void; onClose: () => void }) {
+  const [text, setText] = useState("");
+  const remaining = todos.filter((todo) => !todo.done).length;
+  return <div className="dialog-backdrop" onMouseDown={onClose}><div className="dialog todo-dialog" onMouseDown={(event) => event.stopPropagation()}><div className="dialog-head"><div><p className="eyebrow">TO-DO LIST</p><h2>待办清单</h2></div><button type="button" onClick={onClose} aria-label="关闭"><X/></button></div>
+    <p className="plan-hint">共 {todos.length} 项 · 未完成 {remaining} 项</p>
+    <form className="todo-add" onSubmit={(event) => { event.preventDefault(); const value = text.trim(); if (!value) return; onAdd(value); setText(""); }}><input value={text} onChange={(event) => setText(event.target.value)} placeholder="添加待办事项，回车创建"/><button type="submit" disabled={!text.trim()}><Plus size={16}/>添加</button></form>
+    <ul className="todo-checklist">{todos.map((todo) => <li key={todo.id} className={todo.done ? "done" : ""}><button type="button" className="todo-check" aria-label="切换完成" onClick={() => onToggle(todo.id)}>{todo.done ? <Check size={12}/> : null}</button><span className="todo-checklist-text">{todo.text}</span><button type="button" className="todo-remove" aria-label="删除" onClick={() => onRemove(todo.id)}><Trash2 size={15}/></button></li>)}</ul>
+    {todos.length === 0 && <p className="card-meta">还没有待办，添加第一条吧。</p>}
+  </div></div>;
+}
+
+function More({ users, activeUserId, todoCount, onOpenTodos, onSwitchUser, onNewUser, onRenameUser, onDeleteUser, onReset, onExport, onImport }: { users: UserProfile[]; activeUserId: string; todoCount: number; onOpenTodos: () => void; onSwitchUser: (id: string) => void; onNewUser: () => void; onRenameUser: () => void; onDeleteUser: () => void; onReset: () => void; onExport: () => void; onImport: (file: File) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   return <section className="simple-page">
     <div className="user-panel"><div><p className="eyebrow">当前用户</p><h2>{users.find((user) => user.id === activeUserId)?.name ?? "未命名"}</h2><small>数据按用户分开保存；同一用户在同一浏览器保持一致。</small></div><div className="user-row"><select value={activeUserId} onChange={(event) => onSwitchUser(event.target.value)} aria-label="切换用户">{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={onNewUser}><Plus size={14}/>新建用户</button><button onClick={onRenameUser}><Pencil size={14}/>重命名</button><button onClick={onReset}><Sparkles size={14}/>重置为内置数据</button><button onClick={onDeleteUser} disabled={users.length <= 1}><Trash2 size={14}/>删除</button></div></div>
-    <div className="more-grid"><button onClick={onExport}><span>📤</span><strong>导出数据</strong><small>备份为 JSON 文件</small></button><button onClick={() => fileRef.current?.click()}><span>📥</span><strong>导入数据</strong><small>从备份文件恢复</small></button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.target.value = ""; }} /><button><span>🛍️</span><strong>购物清单</strong><small>2 项待购买</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div>
+    <div className="more-grid"><button onClick={onExport}><span>📤</span><strong>导出数据</strong><small>备份为 JSON 文件</small></button><button onClick={() => fileRef.current?.click()}><span>📥</span><strong>导入数据</strong><small>从备份文件恢复</small></button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.target.value = ""; }} /><button onClick={onOpenTodos}><span>✅</span><strong>待办清单</strong><small>{todoCount > 0 ? `${todoCount} 项` : "记录要完成的清单"}</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div>
   </section>;
 }
 
