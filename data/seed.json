@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-10-05T08:37:41.029Z",
+  "exportedAt": "2026-10-09T03:28:18.268Z",
   "places": [
     {
       "id": "kushida",
@@ -550,6 +550,10 @@
           "placeId": "445d874e-af10-48e8-96b8-78fbd5b326ba",
           "time": "17:36",
           "parentPlaceId": "63af27dd-928b-4ff2-9a18-7b933f3b055f"
+        },
+        {
+          "placeId": "rec",
+          "time": "18:10"
         }
       ],
       "order": [
@@ -768,6 +772,53 @@
       "currency": "JPY",
       "todoKind": "checkin",
       "parentPlaceId": "5c03aad7-3773-43f8-bddf-230d0c1a8bec"
+    }
+  ],
+  "todos": [
+    {
+      "id": "57934066-fbaa-488b-aeab-cb9efc56d16b",
+      "text": "漫游超人",
+      "done": true
+    },
+    {
+      "id": "a04efa76-48ec-4a4f-8bce-535cf1650931",
+      "text": "日元",
+      "done": true
+    },
+    {
+      "id": "91fc734f-5e05-4449-9804-856a940d7893",
+      "text": "充电宝",
+      "done": true
+    },
+    {
+      "id": "da5d0902-1f35-4afb-8772-9a8c2c2c4a93",
+      "text": "樱岛火山",
+      "done": false
+    },
+    {
+      "id": "b1458985-8928-4e14-81d8-57b0e38b209e",
+      "text": "兑换jr pass",
+      "done": false
+    },
+    {
+      "id": "203779e8-be54-4bf9-86b7-8e5475b6cca2",
+      "text": "Jrpass 划位置",
+      "done": false
+    },
+    {
+      "id": "3aea045c-cc34-42a3-98eb-ebf1ad1e39a6",
+      "text": "电子产品整理",
+      "done": false
+    },
+    {
+      "id": "bf3fcede-fbf0-4c26-8f36-34b639dbce7a",
+      "text": "行李整理",
+      "done": false
+    },
+    {
+      "id": "55d4b816-f7f1-4125-91fc-577ebafd9521",
+      "text": "VJS 入境卡",
+      "done": false
     }
   ]
 }
