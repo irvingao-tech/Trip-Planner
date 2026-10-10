@@ -380,15 +380,34 @@ export function TripApp() {
     setTodos((current) => current.filter((todo) => todo.id !== id));
   }
 
-  function exportData() {
+  async function exportData() {
     const payload = { version: 1, exportedAt: new Date().toISOString(), places, plans, trip, shopping, todos };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const json = JSON.stringify(payload, null, 2);
+    const fileName = `japan-trip-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const file = new File([json], fileName, { type: "application/json" });
+
+    // iPhone / iPad 上浏览器无法可靠地把文件写入「文件」App。优先调用系统分享
+    // 面板，用户可以选择「存储到文件」、AirDrop 或发送到其他 App；桌面端则回退为直接下载。
+    const canShareFile = typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
+    if (typeof navigator.share === "function" && canShareFile) {
+      try {
+        await navigator.share({ files: [file], title: "旅日手帖 数据备份", text: `${trip.name} · ${fileName}` });
+        return;
+      } catch (error) {
+        if ((error as DOMException)?.name === "AbortError") return; // 用户取消分享
+      }
+    }
+
+    const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `japan-trip-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = fileName;
+    link.rel = "noopener";
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function importData(file: File) {
@@ -742,7 +761,7 @@ function More({ users, activeUserId, todoCount, onOpenTodos, onSwitchUser, onNew
   const fileRef = useRef<HTMLInputElement>(null);
   return <section className="simple-page">
     <div className="user-panel"><div><p className="eyebrow">当前用户</p><h2>{users.find((user) => user.id === activeUserId)?.name ?? "未命名"}</h2><small>数据按用户分开保存；同一用户在同一浏览器保持一致。</small></div><div className="user-row"><select value={activeUserId} onChange={(event) => onSwitchUser(event.target.value)} aria-label="切换用户">{users.map((user) => <option key={user.id} value={user.id}>{user.name}</option>)}</select><button onClick={onNewUser}><Plus size={14}/>新建用户</button><button onClick={onRenameUser}><Pencil size={14}/>重命名</button><button onClick={onReset}><Sparkles size={14}/>重置为内置数据</button><button onClick={onDeleteUser} disabled={users.length <= 1}><Trash2 size={14}/>删除</button></div></div>
-    <div className="more-grid"><button onClick={onExport}><span>📤</span><strong>导出数据</strong><small>备份为 JSON 文件</small></button><button onClick={() => fileRef.current?.click()}><span>📥</span><strong>导入数据</strong><small>从备份文件恢复</small></button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.target.value = ""; }} /><button onClick={onOpenTodos}><span>✅</span><strong>待办清单</strong><small>{todoCount > 0 ? `${todoCount} 项` : "记录要完成的清单"}</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div>
+    <div className="more-grid"><button onClick={onExport}><span>📤</span><strong>导出数据</strong><small>JSON 备份，可存到「文件」</small></button><button onClick={() => fileRef.current?.click()}><span>📥</span><strong>导入数据</strong><small>从备份文件恢复</small></button><input ref={fileRef} type="file" accept="application/json" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) onImport(file); event.target.value = ""; }} /><button onClick={onOpenTodos}><span>✅</span><strong>待办清单</strong><small>{todoCount > 0 ? `${todoCount} 项` : "记录要完成的清单"}</small></button><button><span>📝</span><strong>旅行笔记</strong><small>记录灵感与提醒</small></button><button><span>⚙️</span><strong>旅程设置</strong><small>日期、节奏与偏好</small></button><button><span>📲</span><strong>安装到主屏幕</strong><small>获得接近 App 的体验</small></button></div>
   </section>;
 }
 
